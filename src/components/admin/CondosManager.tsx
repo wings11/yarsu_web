@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { Trash2, Edit, Plus, MapPin, DollarSign, Home, Bed } from 'lucide-react'
@@ -194,6 +194,24 @@ export default function CondosManager() {
     })
   }
 
+  // Handle image file upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+
+    // For demo: just use local URL. In production, upload to server/storage and get public URL.
+    const url = URL.createObjectURL(file)
+    updateArrayField(index, url)
+    
+    // Clear the file input
+    e.target.value = ''
+  }
+
   if (isLoading) return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
   if (error) return <div className="text-red-600 p-4">Error loading condos</div>
 
@@ -358,22 +376,51 @@ export default function CondosManager() {
                     Condo Images
                   </label>
                   {formData.images.map((image, index) => (
-                    <div key={index} className="flex items-center space-x-2 mb-2">
-                      <input
-                        type="url"
-                        value={image}
-                        onChange={(e) => updateArrayField(index, e.target.value)}
-                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Image URL"
-                      />
-                      {formData.images.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField(index)}
-                          className="p-3 text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                    <div key={index} className="space-y-2 mb-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="url"
+                          value={image}
+                          onChange={(e) => updateArrayField(index, e.target.value)}
+                          className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Image URL or upload file below"
+                        />
+                        {formData.images.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeArrayField(index)}
+                            className="p-3 text-red-600 hover:bg-red-50 rounded-lg"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* File Upload Option */}
+                      <div className="ml-4">
+                        <label className="block text-xs text-gray-600 mb-1">
+                          Or upload image file:
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, index)}
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                      </div>
+                      
+                      {/* Image Preview */}
+                      {image && (
+                        <div className="ml-4">
+                          <img
+                            src={image}
+                            alt={`Condo preview ${index + 1}`}
+                            className="w-24 h-16 object-cover rounded border"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        </div>
                       )}
                     </div>
                   ))}

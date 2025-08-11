@@ -4,6 +4,7 @@ import React from 'react'
 import { useTravelPosts } from '@/hooks/useApi'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
+import ImageCarousel from '@/components/ui/ImageCarousel'
 import { Star, MapPin } from 'lucide-react'
 import type { TravelPost } from '@/lib/supabase'
 
@@ -45,18 +46,14 @@ export default function TravelList() {
 function TravelCard({ post }: { post: TravelPost }) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-      {post.images && post.images.length > 0 && (
-        <div className="h-48 bg-gray-200 overflow-hidden">
-          <img 
-            src={post.images[0]} 
-            alt={post.name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='
-            }}
-          />
-        </div>
-      )}
+      {/* Image Carousel */}
+      <ImageCarousel 
+        images={post.images || []}
+        alt={post.name}
+        className="h-48"
+        showControls={true}
+        autoPlay={false}
+      />
       
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">

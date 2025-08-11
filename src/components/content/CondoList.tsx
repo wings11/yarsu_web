@@ -5,6 +5,7 @@ import { useCondos } from '@/hooks/useApi'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { useLanguage } from '@/contexts/LanguageContext'
+import ImageCarousel from '@/components/ui/ImageCarousel'
 import { formatCurrency } from '@/lib/utils'
 import { MapPin, Wifi, Dumbbell, Trees, Briefcase, Waves } from 'lucide-react'
 import type { Condo } from '@/lib/supabase'
@@ -58,18 +59,14 @@ function CondoCard({ condo }: { condo: Condo }) {
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-      {condo.images && condo.images.length > 0 && (
-        <div className="h-48 bg-gray-200 overflow-hidden">
-          <img 
-            src={condo.images[0]} 
-            alt={condo.name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='
-            }}
-          />
-        </div>
-      )}
+      {/* Image Carousel */}
+      <ImageCarousel 
+        images={condo.images || []}
+        alt={condo.name}
+        className="h-48"
+        showControls={true}
+        autoPlay={false}
+      />
       
       <CardContent className="p-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">

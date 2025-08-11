@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useDocs } from '@/hooks/useApi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import VideoPlayer from '@/components/ui/VideoPlayer'
-import { Calendar, Plus, Edit, Trash2, FileText, Video, Image as ImageIcon, X, ExternalLink } from 'lucide-react'
+import { Calendar, Plus, Edit, Trash2, FileText, Video, Image as ImageIcon, X, ExternalLink, Upload } from 'lucide-react'
 import type { Doc } from '@/lib/supabase'
 import { apiService } from '@/lib/api'
 import { isVideoUrl, isImageUrl, getVideoType } from '@/utils/mediaUtils'
@@ -181,6 +181,7 @@ function DocForm({
   const [text, setText] = useState(doc?.text || '')
   const [mediaUrls, setMediaUrls] = useState<string[]>(doc?.media || [])
   const [newMediaUrl, setNewMediaUrl] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -200,6 +201,24 @@ function DocForm({
 
   const removeMediaUrl = (index: number) => {
     setMediaUrls(mediaUrls.filter((_, i) => i !== index))
+  }
+
+  // Handle file upload for images only
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file. For videos, use URL instead.')
+      return
+    }
+
+    // For demo: just use local URL. In production, upload to server/storage and get public URL.
+    const url = URL.createObjectURL(file)
+    setMediaUrls([...mediaUrls, url])
+    
+    // Clear the file input
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   return (
@@ -238,8 +257,25 @@ function DocForm({
               className="flex-1"
             />
             <Button type="button" onClick={addMediaUrl} variant="secondary">
-              Add
+              Add URL
             </Button>
+          </div>
+          
+          {/* File Upload Option */}
+          <div className="mb-4">
+            <label className="block text-sm text-gray-600 mb-2">
+              Or upload image file:
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Note: File upload only supports images. For videos, use the URL field above.
+            </p>
           </div>
           
           {/* Media Preview */}

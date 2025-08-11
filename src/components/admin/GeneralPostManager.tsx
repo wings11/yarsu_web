@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useGeneralPosts } from '@/hooks/useApi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { VideoPlayer } from '@/components/ui/VideoPlayer'
-import { Calendar, Plus, Edit, Trash2, Image as ImageIcon, Video, X } from 'lucide-react'
+import { Calendar, Plus, Edit, Trash2, Image as ImageIcon, Video, X, Upload } from 'lucide-react'
 import { isImageUrl, isVideoUrl } from '@/utils/mediaUtils'
 import type { GeneralPost } from '@/lib/supabase'
 
@@ -158,11 +158,80 @@ function PostForm({
   const [text, setText] = useState(post?.text || '')
   const [mediaUrls, setMediaUrls] = useState<string[]>(post?.media || [])
   const [newMediaUrl, setNewMediaUrl] = useState('')
+  const [draftRestored, setDraftRestored] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Autosave key for localStorage
+  const AUTOSAVE_KEY = 'yarsu_general_post_draft'
+
+  // Load saved draft on component mount (only for new posts)
+  useEffect(() => {
+    if (!post) { // Only restore for new posts, not when editing
+      try {
+        const savedDraft = localStorage.getItem(AUTOSAVE_KEY)
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft)
+          if (parsed.text || (parsed.mediaUrls && parsed.mediaUrls.length > 0)) {
+            setText(parsed.text || '')
+            setMediaUrls(parsed.mediaUrls || [])
+            setDraftRestored(true)
+            console.log('Restored draft from autosave')
+            
+            // Hide the restored message after 5 seconds
+            setTimeout(() => setDraftRestored(false), 5000)
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to restore autosave draft:', error)
+        localStorage.removeItem(AUTOSAVE_KEY)
+      }
+    }
+  }, [post])
+
+  // Autosave to localStorage whenever form data changes
+  useEffect(() => {
+    if (!post) { // Only autosave for new posts, not when editing
+      const draftData = {
+        text: text.trim(),
+        mediaUrls,
+        lastSaved: Date.now()
+      }
+      
+      // Only save if there's actual content
+      if (draftData.text || draftData.mediaUrls.length > 0) {
+        try {
+          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draftData))
+        } catch (error) {
+          console.warn('Failed to autosave draft:', error)
+        }
+      }
+    }
+  }, [text, mediaUrls, post])
+
+  // Clear autosave on successful save or cancel
+  const clearAutosave = () => {
+    try {
+      localStorage.removeItem(AUTOSAVE_KEY)
+      console.log('Cleared autosave draft')
+    } catch (error) {
+      console.warn('Failed to clear autosave:', error)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!text.trim()) return
+    
     onSave({ text: text.trim(), media: mediaUrls })
+    
+    // Clear autosave after successful submission
+    clearAutosave()
+  }
+
+  const handleCancel = () => {
+    // Clear autosave when canceling
+    clearAutosave()
+    onCancel()
   }
 
   const addMediaUrl = () => {
@@ -176,11 +245,37 @@ function PostForm({
     setMediaUrls(mediaUrls.filter((_, i) => i !== index))
   }
 
+  // Handle file upload for images only
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file. For videos, use URL instead.')
+      return
+    }
+
+    // For demo: just use local URL. In production, upload to server/storage and get public URL.
+    const url = URL.createObjectURL(file)
+    setMediaUrls([...mediaUrls, url])
+    
+    // Clear the file input
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 md:p-6">
-      <h3 className="text-lg font-medium mb-4">
-        {post ? 'Edit Post' : 'Create New Post'}
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-medium">
+          {post ? 'Edit Post' : 'Create New Post'}
+        </h3>
+        {draftRestored && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-1 rounded-md text-sm flex items-center space-x-1">
+            <span>✓</span>
+            <span>Draft restored</span>
+          </div>
+        )}
+      </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -210,8 +305,25 @@ function PostForm({
               className="flex-1"
             />
             <Button type="button" onClick={addMediaUrl} variant="secondary" className="w-full sm:w-auto">
-              Add
+              Add URL
             </Button>
+          </div>
+          
+          {/* File Upload Option */}
+          <div className="mb-4">
+            <label className="block text-sm text-gray-600 mb-2">
+              Or upload image file:
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Note: File upload only supports images. For videos, use the URL field above.
+            </p>
           </div>
           
           {/* Media Preview */}
@@ -247,7 +359,7 @@ function PostForm({
           <Button type="submit" disabled={isLoading || !text.trim()} className="w-full sm:w-auto">
             {isLoading ? 'Saving...' : post ? 'Update Post' : 'Create Post'}
           </Button>
-          <Button type="button" variant="secondary" onClick={onCancel} className="w-full sm:w-auto">
+          <Button type="button" variant="secondary" onClick={handleCancel} className="w-full sm:w-auto">
             Cancel
           </Button>
         </div>

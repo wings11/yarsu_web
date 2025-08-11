@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { Trash2, Edit, Plus, MapPin, Calendar, Plane, DollarSign, Star } from 'lucide-react'
@@ -153,6 +153,24 @@ export default function TravelManager() {
     })
   }
 
+  // Handle image file upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+
+    // For demo: just use local URL. In production, upload to server/storage and get public URL.
+    const url = URL.createObjectURL(file)
+    updateArrayField('images', index, url)
+    
+    // Clear the file input
+    e.target.value = ''
+  }
+
   const handleDelete = (travelId: number) => {
     if (window.confirm('Are you sure you want to delete this travel post?')) {
       deleteMutation.mutate(travelId)
@@ -281,22 +299,51 @@ export default function TravelManager() {
                   Images
                 </label>
                 {formData.images.map((image, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <input
-                      type="url"
-                      value={image}
-                      onChange={(e) => updateArrayField('images', index, e.target.value)}
-                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter image URL"
-                    />
-                    {formData.images.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeArrayField('images', index)}
-                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
-                      >
-                        ×
-                      </button>
+                  <div key={index} className="space-y-2 mb-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={image}
+                        onChange={(e) => updateArrayField('images', index, e.target.value)}
+                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Image URL or upload file below"
+                      />
+                      {formData.images.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeArrayField('images', index)}
+                          className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* File Upload Option */}
+                    <div className="ml-4">
+                      <label className="block text-xs text-gray-600 mb-1">
+                        Or upload image file:
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, index)}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                    </div>
+                    
+                    {/* Image Preview */}
+                    {image && (
+                      <div className="ml-4">
+                        <img
+                          src={image}
+                          alt={`Travel preview ${index + 1}`}
+                          className="w-24 h-16 object-cover rounded border"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
                 ))}

@@ -117,7 +117,7 @@ function JobCard({ job }: { job: Job }) {
         {job.stay && job.location && (
           <div className="flex items-center text-gray-600 mb-4">
             <Home className="h-4 w-4 mr-2" />
-            <span className="text-sm">Accommodation: {job.location}</span>
+            <span className="text-sm">{t('acco')} {job.location}</span>
           </div>
         )}
 

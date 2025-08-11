@@ -171,6 +171,7 @@ const translations = {
     dontHaveAccount: "Don't have an account?",
     signInHere: 'Sign in here',
     signUpHere: 'Sign up here',
+    acco: 'Accomodation Location: ',
     
     // Admin Dashboard
     adminDashboard: 'Admin Dashboard',
@@ -258,7 +259,7 @@ const translations = {
     // Job related
     daily: 'နေ့စား',
     monthly: 'လစား',
-    accommodation: 'နေစရာ',
+    accommodation: 'နေစရာပေးသည်',
     provided: 'ပေးထား',
     
     // Status
@@ -321,6 +322,7 @@ const translations = {
     dontHaveAccount: 'အကောင့်မရှိသေးလား?',
     signInHere: 'ဒီမှာ ဝင်ရောက်ပါ',
     signUpHere: 'ဒီမှာ စာရင်းသွင်းပါ',
+    acco: 'နေထိုင်ရန် နေရာ:-',
     
     // Admin Dashboard
     adminDashboard: 'စီမံခန့်ခွဲမှု',
