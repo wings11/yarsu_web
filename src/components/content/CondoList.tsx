@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { useLanguage } from '@/contexts/LanguageContext'
 import ImageCarousel from '@/components/ui/ImageCarousel'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { formatCurrency } from '@/lib/utils'
 import { MapPin, Wifi, Dumbbell, Trees, Briefcase, Waves } from 'lucide-react'
 import type { Condo } from '@/lib/supabase'
@@ -97,9 +98,11 @@ function CondoCard({ condo }: { condo: Condo }) {
         </div>
 
         {condo.notes && (
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {condo.notes}
-          </p>
+          <ExpandableText 
+            text={condo.notes}
+            maxLines={2}
+            className="text-sm text-gray-600"
+          />
         )}
       </CardContent>
     </Card>

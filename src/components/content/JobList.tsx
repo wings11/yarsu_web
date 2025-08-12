@@ -6,6 +6,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { Button } from '@/components/ui/Button'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { MapPin, CreditCard, Globe, Home, Briefcase, RefreshCw } from 'lucide-react'
 import type { Job } from '@/lib/supabase'
 
@@ -148,9 +149,11 @@ function JobCard({ job }: { job: Job }) {
         {job.notes && (
           <div className="mb-4">
             <h4 className="text-sm font-medium text-gray-900 mb-1">Details:</h4>
-            <p className="text-sm text-gray-600 line-clamp-3">
-              {job.notes}
-            </p>
+            <ExpandableText 
+              text={job.notes}
+              maxLines={3}
+              className="text-sm text-gray-600"
+            />
           </div>
         )}
 

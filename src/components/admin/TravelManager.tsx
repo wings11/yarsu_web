@@ -3,7 +3,8 @@
 import React, { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
-import { Trash2, Edit, Plus, MapPin, Calendar, Plane, DollarSign, Star } from 'lucide-react'
+import { StorageService } from '@/lib/storage'
+import { Trash2, Edit, Plus, MapPin, Calendar, Plane, DollarSign, Star, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface TravelPost {
@@ -163,9 +164,22 @@ export default function TravelManager() {
       return
     }
 
-    // For demo: just use local URL. In production, upload to server/storage and get public URL.
-    const url = URL.createObjectURL(file)
-    updateArrayField('images', index, url)
+    try {
+      toast.loading('Uploading image...')
+      
+      // Upload to Supabase storage and get permanent URL
+      const publicUrl = await StorageService.uploadImage(file, 'images', 'travel')
+      
+      // Update form data with the permanent URL
+      updateArrayField('images', index, publicUrl)
+      
+      toast.dismiss()
+      toast.success('Image uploaded successfully!')
+    } catch (error) {
+      toast.dismiss()
+      console.error('Image upload error:', error)
+      toast.error('Failed to upload image. Please try again.')
+    }
     
     // Clear the file input
     e.target.value = ''

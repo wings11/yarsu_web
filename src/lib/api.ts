@@ -189,6 +189,13 @@ class ApiService {
     })
   }
 
+  async updateGeneralPost(postId: number, postData: { text: string; media: string[] }) {
+    return this.request(`/api/general/${postId}`, {
+      method: 'PUT',
+      body: JSON.stringify(postData)
+    })
+  }
+
   async deleteGeneralPost(postId: number) {
     return this.request(`/api/general/${postId}`, {
       method: 'DELETE'

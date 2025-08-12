@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { Button } from '@/components/ui/Button'
 import ImageCarousel from '@/components/ui/ImageCarousel'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { formatCurrency } from '@/lib/utils'
 import { Star, MapPin, Wifi, Car, Waves, Coffee, Building, RefreshCw } from 'lucide-react'
 import type { Hotel } from '@/lib/supabase'
@@ -156,9 +157,11 @@ function HotelCard({ hotel }: { hotel: Hotel }) {
         )}
 
         {hotel.notes && (
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {hotel.notes}
-          </p>
+          <ExpandableText 
+            text={hotel.notes}
+            maxLines={2}
+            className="text-sm text-gray-600"
+          />
         )}
       </CardContent>
     </Card>

@@ -10,6 +10,7 @@ import { VideoPlayer } from '@/components/ui/VideoPlayer'
 import { Calendar, Plus, Edit, Trash2, Image as ImageIcon, Video, X, Upload } from 'lucide-react'
 import { isImageUrl, isVideoUrl } from '@/utils/mediaUtils'
 import type { GeneralPost } from '@/lib/supabase'
+import { StorageService } from '@/lib/storage'
 
 export default function GeneralPostManager() {
   const [isCreating, setIsCreating] = useState(false)
@@ -29,6 +30,21 @@ export default function GeneralPostManager() {
     onError: (error: any) => {
       console.error('Create post error:', error)
       alert(`Failed to create post: ${error.message}`)
+    }
+  })
+
+  // Update post mutation
+  const updatePostMutation = useMutation({
+    mutationFn: async ({ postId, postData }: { postId: number; postData: { text: string; media: string[] } }) => {
+      return await apiService.updateGeneralPost(postId, postData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['general-posts'] })
+      setEditingPost(null)
+    },
+    onError: (error: any) => {
+      console.error('Update post error:', error)
+      alert(`Failed to update post: ${error.message}`)
     }
   })
 
@@ -73,7 +89,7 @@ export default function GeneralPostManager() {
           post={editingPost}
           onSave={(postData) => {
             if (editingPost) {
-              // Update logic here
+              updatePostMutation.mutate({ postId: editingPost.id, postData })
             } else {
               createPostMutation.mutate(postData)
             }
@@ -255,9 +271,13 @@ function PostForm({
       return
     }
 
-    // For demo: just use local URL. In production, upload to server/storage and get public URL.
-    const url = URL.createObjectURL(file)
-    setMediaUrls([...mediaUrls, url])
+    try {
+      const uploadedUrl = await StorageService.uploadImage(file)
+      setMediaUrls([...mediaUrls, uploadedUrl])
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      alert('Failed to upload image. Please try again.')
+    }
     
     // Clear the file input
     if (fileInputRef.current) fileInputRef.current.value = ''

@@ -5,6 +5,7 @@ import { useTravelPosts } from '@/hooks/useApi'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import ImageCarousel from '@/components/ui/ImageCarousel'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { Star, MapPin } from 'lucide-react'
 import type { TravelPost } from '@/lib/supabase'
 
@@ -94,9 +95,11 @@ function TravelCard({ post }: { post: TravelPost }) {
         )}
 
         {post.notes && (
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {post.notes}
-          </p>
+          <ExpandableText 
+            text={post.notes}
+            maxLines={2}
+            className="text-sm text-gray-600"
+          />
         )}
       </CardContent>
     </Card>

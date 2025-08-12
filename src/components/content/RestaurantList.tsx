@@ -5,6 +5,7 @@ import { useRestaurants } from '@/hooks/useApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import ImageCarousel from '@/components/ui/ImageCarousel'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { formatCurrency } from '@/lib/utils'
 import { Star, MapPin } from 'lucide-react'
 import type { Restaurant } from '@/lib/supabase'
@@ -94,9 +95,11 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
         )}
 
         {restaurant.notes && (
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {restaurant.notes}
-          </p>
+          <ExpandableText 
+            text={restaurant.notes}
+            maxLines={2}
+            className="text-sm text-gray-600"
+          />
         )}
       </CardContent>
     </Card>

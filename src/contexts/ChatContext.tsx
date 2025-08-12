@@ -89,16 +89,27 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           pollIntervalRef.current = null
         }
       } else {
-        // Resume polling when tab becomes visible
-        if (connected && !pollIntervalRef.current) {
+        // Only resume polling if we've been away for more than 2 minutes
+        // This prevents unnecessary refetching for quick tab switches
+        const timeAway = Date.now() - (document.lastVisibilityChange || 0)
+        if (connected && !pollIntervalRef.current && timeAway > 2 * 60 * 1000) {
           startMessagePolling()
         }
       }
     }
 
+    // Track when we last became hidden
+    const trackVisibilityChange = () => {
+      if (document.hidden) {
+        document.lastVisibilityChange = Date.now()
+      }
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('visibilitychange', trackVisibilityChange)
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      document.removeEventListener('visibilitychange', trackVisibilityChange)
     }
   }, [connected, startMessagePolling])
 

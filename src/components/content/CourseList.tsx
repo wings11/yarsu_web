@@ -4,6 +4,7 @@ import React from 'react'
 import { useCourses } from '@/hooks/useApi'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
+import ExpandableText from '@/components/ui/ExpandableText'
 import { formatCurrency } from '@/lib/utils'
 import { MapPin, Clock } from 'lucide-react'
 import type { Course } from '@/lib/supabase'
@@ -71,9 +72,11 @@ function CourseCard({ course }: { course: Course }) {
         </div>
 
         {course.notes && (
-          <p className="text-sm text-gray-600 line-clamp-3">
-            {course.notes}
-          </p>
+          <ExpandableText 
+            text={course.notes}
+            maxLines={3}
+            className="text-sm text-gray-600"
+          />
         )}
       </CardContent>
     </Card>

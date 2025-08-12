@@ -27,7 +27,7 @@ export interface Chat {
   user?: {
     id: string
     email: string
-    display_name?: string
+    // display_name?: string
     role?: string
   }
 }

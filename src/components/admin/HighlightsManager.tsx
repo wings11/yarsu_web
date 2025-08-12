@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Calendar, Plus, Edit, Trash2, Star, Upload } from 'lucide-react'
 import type { Highlight } from '@/lib/supabase'
+import { StorageService } from '@/lib/storage'
 
 export default function HighlightsManager() {
   const [isCreating, setIsCreating] = useState(false)
@@ -207,9 +208,13 @@ function HighlightForm({
       return
     }
 
-    // For demo: just use local URL. In production, upload to server/storage and get public URL.
-    const url = URL.createObjectURL(file)
-    setImageUrl(url)
+    try {
+      const uploadedUrl = await StorageService.uploadImage(file)
+      setImageUrl(uploadedUrl)
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      alert('Failed to upload image. Please try again.')
+    }
     
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
