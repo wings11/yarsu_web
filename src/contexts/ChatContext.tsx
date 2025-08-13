@@ -81,8 +81,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   // Handle visibility change for better performance
   useEffect(() => {
+    let lastVisibilityChange = Date.now()
+    
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        lastVisibilityChange = Date.now()
         // Stop polling when tab is not visible
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current)
@@ -91,25 +94,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Only resume polling if we've been away for more than 2 minutes
         // This prevents unnecessary refetching for quick tab switches
-        const timeAway = Date.now() - (document.lastVisibilityChange || 0)
+        const timeAway = Date.now() - lastVisibilityChange
         if (connected && !pollIntervalRef.current && timeAway > 2 * 60 * 1000) {
           startMessagePolling()
         }
       }
     }
 
-    // Track when we last became hidden
-    const trackVisibilityChange = () => {
-      if (document.hidden) {
-        document.lastVisibilityChange = Date.now()
-      }
-    }
-
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    document.addEventListener('visibilitychange', trackVisibilityChange)
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      document.removeEventListener('visibilitychange', trackVisibilityChange)
     }
   }, [connected, startMessagePolling])
 

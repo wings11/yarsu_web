@@ -1,0 +1,3 @@
+<!-- Placeholder for favicon.ico -->
+<!-- Please copy your logo as favicon.ico to /public/ directory -->
+<!-- You can use online tools to convert your logo.png to favicon.ico -->
