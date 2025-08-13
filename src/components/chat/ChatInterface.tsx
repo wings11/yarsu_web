@@ -383,12 +383,12 @@ export default function ChatInterface() {
                   >
                     <RefreshCw className={`h-4 w-4 ${messagesLoading ? 'animate-spin' : ''}`} />
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  {/* <Button variant="ghost" size="sm">
                     <Phone className="h-5 w-5" />
                   </Button>
                   <Button variant="ghost" size="sm">
                     <Video className="h-5 w-5" />
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
             </div>
