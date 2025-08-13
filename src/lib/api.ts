@@ -52,27 +52,81 @@ class ApiService {
     return this.request(`/api/messages/${chatId}`)
   }
 
-  async sendMessage(message: string, chatId?: number, type: string = 'text') {
-    const payload = { 
-      message, 
-      type,
-      ...(chatId && { chat_id: chatId })
-    }
-    return this.request('/api/messages', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    })
-  }
+  async sendMessage(message: string, chatId?: number, type: string = 'text', file?: File) {
+    if (file) {
+      // Send as FormData for file uploads
+      const formData = new FormData()
+      formData.append('message', message || '')
+      formData.append('type', type)
+      if (chatId) {
+        formData.append('chat_id', chatId.toString())
+      }
+      formData.append('file', file)
 
-  async replyMessage(message: string, chatId: number, type: string = 'text') {
-    return this.request('/api/reply', {
-      method: 'POST',
-      body: JSON.stringify({ 
+      // Get token for authorization
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      return fetch(`${API_BASE_URL}/api/messages`, {
+        method: 'POST',
+        headers: {
+          ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` })
+        },
+        body: formData
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`)
+        }
+        return response.json()
+      })
+    } else {
+      // Send as JSON for text messages
+      const payload = { 
         message, 
         type,
-        chat_id: chatId 
+        ...(chatId && { chat_id: chatId })
+      }
+      return this.request('/api/messages', {
+        method: 'POST',
+        body: JSON.stringify(payload)
       })
-    })
+    }
+  }
+
+  async replyMessage(message: string, chatId: number, type: string = 'text', file?: File) {
+    if (file) {
+      // Send as FormData for file uploads
+      const formData = new FormData()
+      formData.append('message', message || '')
+      formData.append('type', type)
+      formData.append('chat_id', chatId.toString())
+      formData.append('file', file)
+
+      // Get token for authorization
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      return fetch(`${API_BASE_URL}/api/reply`, {
+        method: 'POST',
+        headers: {
+          ...(session?.access_token && { Authorization: `Bearer ${session.access_token}` })
+        },
+        body: formData
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`)
+        }
+        return response.json()
+      })
+    } else {
+      // Send as JSON for text messages
+      return this.request('/api/reply', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          message, 
+          type,
+          chat_id: chatId
+        })
+      })
+    }
   }
 
   // Mark messages as read

@@ -123,19 +123,22 @@ export function useSendMessage() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ message, chatId, type }: { message: string, chatId?: number, type?: string }) => {
-      
-      return apiService.sendMessage(message, chatId, type)
+    mutationFn: ({ message, chatId, type, file }: { 
+      message: string, 
+      chatId?: number, 
+      type?: string,
+      file?: File
+    }) => {
+      return apiService.sendMessage(message, chatId, type, file)
     },
     onSuccess: (data: any, { chatId }: any) => {
-      
       if (chatId) {
         queryClient.invalidateQueries({ queryKey: ['messages', chatId] })
       }
       queryClient.invalidateQueries({ queryKey: ['chats'] })
     },
     onError: (error: any) => {
-      
+      console.error('Send message error:', error)
     }
   })
 }
@@ -144,8 +147,13 @@ export function useReplyMessage() {
   const queryClient = useQueryClient()
   
   return useMutation({
-    mutationFn: ({ message, chatId, type }: { message: string, chatId: number, type?: string }) =>
-      apiService.replyMessage(message, chatId, type),
+    mutationFn: ({ message, chatId, type, file }: { 
+      message: string, 
+      chatId: number, 
+      type?: string,
+      file?: File
+    }) =>
+      apiService.replyMessage(message, chatId, type, file),
     onSuccess: (_: any, { chatId }: any) => {
       queryClient.invalidateQueries({ queryKey: ['messages', chatId] })
       queryClient.invalidateQueries({ queryKey: ['chats'] })

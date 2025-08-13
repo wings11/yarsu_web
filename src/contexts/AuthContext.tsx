@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string) => Promise<any>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
 }
@@ -70,7 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string) => {
     setLoading(true)
     try {
-      await AuthService.signUp(email, password)
+      const response = await AuthService.signUp(email, password)
+      
+      // If user is immediately confirmed (email verification disabled)
+      if (response.user && response.user.email_confirmed_at) {
+        // Get the full user profile
+        const userData = await AuthService.getCurrentUser()
+        setUser(userData)
+      }
+      
+      return response
     } finally {
       setLoading(false)
     }

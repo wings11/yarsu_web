@@ -37,8 +37,10 @@ export interface Message {
   chat_id: number
   sender_id: string
   message: string
-  type: 'text' | 'image' | 'file'
+  type: 'text' | 'image' | 'file' | 'video'
   file_url?: string
+  file_name?: string
+  file_type?: string
   created_at: string
   read_at?: string
 }

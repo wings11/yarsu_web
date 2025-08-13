@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { StorageService } from '@/lib/storage'
+import { SmartLink } from '@/components/ui/SmartLink'
 import { Trash2, Edit, Plus, MapPin, Star, Utensils } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -420,8 +421,12 @@ export default function RestaurantsManager() {
                 </div>
                 
                 <div className="flex items-center space-x-2 text-sm text-gray-600 mb-4">
-                  <MapPin className="h-4 w-4" />
-                  <span>{restaurant.location}</span>
+                  <SmartLink 
+                    text={restaurant.location} 
+                    iconType="location"
+                    className="text-sm"
+                    fallbackText="Location not specified"
+                  />
                 </div>
 
                 {restaurant.popular_picks.length > 0 && (

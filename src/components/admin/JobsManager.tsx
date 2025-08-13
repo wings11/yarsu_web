@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
+import { SmartLink } from '@/components/ui/SmartLink'
 import { Trash2, Edit, Plus, MapPin, DollarSign, Users, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -315,8 +316,12 @@ export default function JobsManager() {
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <MapPin className="h-4 w-4" />
-                    <span>{job.job_location}</span>
+                    <SmartLink 
+                      text={job.job_location} 
+                      iconType="location"
+                      className="text-sm"
+                      fallbackText="Location not specified"
+                    />
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <DollarSign className="h-4 w-4" />

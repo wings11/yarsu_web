@@ -25,7 +25,21 @@ export default function LoginForm() {
       await signIn(email, password)
       router.push('/')
     } catch (error: any) {
-      setError(error.message || 'Failed to sign in')
+      let errorMessage = 'Failed to sign in'
+      
+      if (error.message.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.'
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and click the confirmation link before signing in.'
+      } else if (error.message.includes('Too many requests')) {
+        errorMessage = 'Too many login attempts. Please wait a few minutes and try again.'
+      } else if (error.message.includes('User not found')) {
+        errorMessage = 'No account found with this email address. Please sign up first.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -70,7 +84,21 @@ export default function LoginForm() {
 
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-                  {error}
+                  <div className="flex items-start">
+                    <svg className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p>{error}</p>
+                      {error.includes('No account found') && (
+                        <p className="mt-1">
+                          <Link href="/signup" className="text-red-800 underline hover:text-red-900">
+                            Create an account
+                          </Link>
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import ImageCarousel from '@/components/ui/ImageCarousel'
 import ExpandableText from '@/components/ui/ExpandableText'
+import { SmartLink } from '@/components/ui/SmartLink'
 import { formatCurrency } from '@/lib/utils'
 import { Star, MapPin } from 'lucide-react'
 import type { Restaurant } from '@/lib/supabase'
@@ -69,8 +70,12 @@ function RestaurantCard({ restaurant }: { restaurant: Restaurant }) {
         </div>
 
         <div className="flex items-center text-gray-600 mb-3">
-          <MapPin className="h-4 w-4 mr-1" />
-          <span className="text-sm">{restaurant.location}</span>
+          <SmartLink 
+            text={restaurant.location} 
+            iconType="location"
+            className="text-sm"
+            fallbackText="Location not specified"
+          />
         </div>
 
         {restaurant.popular_picks && restaurant.popular_picks.length > 0 && (

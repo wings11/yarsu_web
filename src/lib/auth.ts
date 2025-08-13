@@ -15,11 +15,21 @@ export class AuthService {
         email,
         password,
         options: {
-          emailRedirectTo: undefined, // Disable email verification redirect since it's disabled
+          emailRedirectTo: `${window.location.origin}/auth/callback`, // Add proper redirect
         }
       })
 
       if (error) {
+        // Handle specific Supabase errors
+        if (error.message.includes('User already registered')) {
+          throw new Error('An account with this email already exists. Please sign in instead.')
+        }
+        if (error.message.includes('Password should be at least')) {
+          throw new Error('Password must be at least 6 characters long.')
+        }
+        if (error.message.includes('Unable to validate email address')) {
+          throw new Error('Please enter a valid email address.')
+        }
         throw error
       }
 

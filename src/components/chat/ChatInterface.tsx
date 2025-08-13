@@ -9,14 +9,21 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatChatTime } from '@/lib/utils'
 import { Send, Phone, Video, ArrowLeft, RefreshCw, Bell, BellOff } from 'lucide-react'
 import type { Chat, Message } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import FileAttachment from './FileAttachment'
+import FileMessage from './FileMessage'
 
 export default function ChatInterface() {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null)
   const [messageText, setMessageText] = useState('')
+  const [attachedFile, setAttachedFile] = useState<File | null>(null)
+  const [attachedFileUrl, setAttachedFileUrl] = useState<string>('')
+  const [attachedFileName, setAttachedFileName] = useState<string>('')
+  const [attachedFileType, setAttachedFileType] = useState<string>('')
+  const [clearFilePreview, setClearFilePreview] = useState(false)
   const [showChatList, setShowChatList] = useState(true) // For mobile navigation
   const { user } = useAuth()
   const { socket, joinChat, leaveChat, sendMessage, newMessages, activeChats } = useChat()
@@ -99,26 +106,51 @@ export default function ChatInterface() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!messageText.trim() || !selectedChat) {
+    if ((!messageText.trim() && !attachedFile) || !selectedChat) {
       return
     }
 
-    // Send via socket for real-time (this will trigger immediate refresh)
-    sendMessage(selectedChat.id, messageText.trim())
+    const messageContent = messageText.trim()
     
-    // Send via API for persistence
+    // Determine message type based on file category
+    let messageType = 'text'
+    if (attachedFile) {
+      if (attachedFileType.startsWith('image/')) {
+        messageType = 'image'
+      } else if (attachedFileType.startsWith('video/')) {
+        messageType = 'video' 
+      } else {
+        messageType = 'file'
+      }
+    }
+    
+    // For files, send appropriate message content
+    const finalMessageContent = attachedFile 
+      ? (messageContent || '') // For files, use the text message or empty string
+      : messageContent
+    
+    // If no file attachment, send via socket for real-time
+    if (!attachedFile) {
+      sendMessage(selectedChat.id, finalMessageContent)
+    }
+    
+    // Send via API for persistence (required for files, optional for text)
     try {
       if (isAdmin) {
         // Admin uses reply endpoint
         await replyMessageMutation.mutateAsync({
-          message: messageText.trim(),
-          chatId: selectedChat.id
+          message: finalMessageContent,
+          chatId: selectedChat.id,
+          type: messageType,
+          file: attachedFile || undefined
         })
       } else {
         // Regular user uses messages endpoint
         await sendMessageMutation.mutateAsync({
-          message: messageText.trim(),
-          chatId: selectedChat.id
+          message: finalMessageContent,
+          chatId: selectedChat.id,
+          type: messageType,
+          file: attachedFile || undefined
         })
       }
       
@@ -129,7 +161,30 @@ export default function ChatInterface() {
       console.error('Failed to send message:', error)
     }
 
+    // Clear input and file attachment
     setMessageText('')
+    clearAttachment()
+    setClearFilePreview(true)
+    
+    // Reset the clear flag after a brief moment
+    setTimeout(() => {
+      setClearFilePreview(false)
+    }, 100)
+  }
+
+  const handleFileSelect = (fileUrl: string, fileName: string, fileType: string, file?: File) => {
+    setAttachedFileUrl(fileUrl)
+    setAttachedFileName(fileName)
+    setAttachedFileType(fileType)
+    setAttachedFile(file || null)
+    setClearFilePreview(false) // Reset clear flag when new file is selected
+  }
+
+  const clearAttachment = () => {
+    setAttachedFileUrl('')
+    setAttachedFileName('')
+    setAttachedFileType('')
+    setAttachedFile(null)
   }
 
   // Combine API messages with new socket messages
@@ -194,21 +249,32 @@ export default function ChatInterface() {
         {/* Message input - No fixed positioning needed for fullscreen chat */}
         <div className="p-3 sm:p-4 border-t border-gray-200 bg-white">
           <form onSubmit={handleSendMessage}>
-            <div className="flex space-x-2 sm:space-x-3">
-              <Input
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 text-base px-3 py-3 sm:px-4 sm:py-3 rounded-full border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              {/* File Attachment Button */}
+              <FileAttachment
+                onFileSelect={handleFileSelect}
+                onClearFile={clearAttachment}
+                shouldClear={clearFilePreview}
+                disabled={false}
+                maxFileSize={50} // 50MB to accommodate videos
               />
-              <Button 
-                type="submit" 
-                disabled={!messageText.trim()} 
-                size="md" 
-                className="px-4 sm:px-6 py-3 rounded-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300"
-              >
-                <Send className="h-5 w-5" />
-              </Button>
+              
+              {/* Input with send button inside */}
+              <div className="flex-1 relative">
+                <Input
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Type your message..."
+                  className="w-full text-base px-3 py-3 sm:px-4 sm:py-3 pr-14 rounded-full border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                />
+                <button
+                  type="submit" 
+                  disabled={!messageText.trim() && !attachedFile}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-10 w-10 rounded-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors"
+                >
+                  <Send className="h-4 w-4 text-white" />
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -348,24 +414,37 @@ export default function ChatInterface() {
             </div>
 
             {/* Message input */}
-            <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-gray-200">
-              <div className="flex space-x-2 sm:space-x-3">
-                <Input
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 text-base px-3 py-3 sm:px-4 sm:py-3 rounded-full border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-                />
-                <Button 
-                  type="submit" 
-                  disabled={!messageText.trim()} 
-                  size="md" 
-                  className="px-4 sm:px-6 py-3 rounded-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300"
-                >
-                  <Send className="h-5 w-5" />
-                </Button>
-              </div>
-            </form>
+            <div className="p-3 sm:p-4 border-t border-gray-200">
+              <form onSubmit={handleSendMessage}>
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  {/* File Attachment Button */}
+                  <FileAttachment
+                    onFileSelect={handleFileSelect}
+                    onClearFile={clearAttachment}
+                    shouldClear={clearFilePreview}
+                    disabled={false}
+                    maxFileSize={50} // 50MB to accommodate videos
+                  />
+                  
+                  {/* Input with send button inside */}
+                  <div className="flex-1 relative">
+                    <Input
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      placeholder="Type a message..."
+                      className="w-full text-base px-3 py-3 sm:px-4 sm:py-3 pr-14 rounded-full border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                    />
+                    <button
+                      type="submit" 
+                      disabled={!messageText.trim() && !attachedFile}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-10 w-10 rounded-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors"
+                    >
+                      <Send className="h-4 w-4 text-white" />
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">
@@ -425,20 +504,83 @@ function ChatListItem({
 }
 
 function MessageBubble({ message, isOwn }: { message: Message, isOwn: boolean }) {
+  const isFileMessage = (message.type === 'file' || message.type === 'image' || message.type === 'video') && message.file_url
+  const isMediaMessage = (message.type === 'image' || message.type === 'video') && message.file_url
+
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-        isOwn 
-          ? 'bg-primary-600 text-white' 
-          : 'bg-gray-200 text-gray-800'
-      }`}>
-        <p className="text-sm">{message.message}</p>
-        <p className={`text-xs mt-1 ${
-          isOwn ? 'text-primary-100' : 'text-gray-500'
+    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2`}>
+      {isMediaMessage ? (
+        // Media messages (images/videos) - no background bubble, just the media
+        <div className={`max-w-xs sm:max-w-sm lg:max-w-md`}>
+          <div className="relative">
+            <FileMessage 
+              fileUrl={message.file_url!}
+              fileName={message.file_name || 'Media'}
+              fileType={message.file_type || ''}
+              isOwnMessage={isOwn}
+            />
+            {/* Caption overlay if there's a message */}
+            {message.message && message.message.trim() && (
+              <div className={`mt-1 px-3 py-2 rounded-lg ${
+                isOwn 
+                  ? 'bg-primary-600 text-white' 
+                  : 'bg-gray-200 text-gray-800'
+              }`}>
+                <p className="text-sm">{message.message}</p>
+                <p className={`text-xs mt-1 ${
+                  isOwn ? 'text-primary-100' : 'text-gray-500'
+                }`}>
+                  {formatChatTime(message.created_at)}
+                </p>
+              </div>
+            )}
+            {/* Timestamp without caption */}
+            {(!message.message || !message.message.trim()) && (
+              <p className={`text-xs mt-1 px-1 ${
+                isOwn ? 'text-right text-gray-600' : 'text-left text-gray-500'
+              }`}>
+                {formatChatTime(message.created_at)}
+              </p>
+            )}
+          </div>
+        </div>
+      ) : isFileMessage ? (
+        // Non-media file messages - keep the bubble
+        <div className={`max-w-xs lg:max-w-md rounded-lg p-3 ${
+          isOwn 
+            ? 'bg-primary-600 text-white' 
+            : 'bg-gray-200 text-gray-800'
         }`}>
-          {formatDate(message.created_at)}
-        </p>
-      </div>
+          <FileMessage 
+            fileUrl={message.file_url!}
+            fileName={message.file_name || 'File'}
+            fileType={message.file_type || ''}
+            isOwnMessage={isOwn}
+          />
+          {message.message && message.message !== message.file_name && (
+            <p className="text-sm mt-2">{message.message}</p>
+          )}
+          <p className={`text-xs mt-1 ${
+            isOwn ? 'text-primary-100' : 'text-gray-500'
+          }`}>
+            {formatChatTime(message.created_at)}
+          </p>
+        </div>
+      ) : (
+        // Text messages - regular bubble
+        <div className={`max-w-xs lg:max-w-md rounded-lg px-4 py-2 ${
+          isOwn 
+            ? 'bg-primary-600 text-white' 
+            : 'bg-gray-200 text-gray-800'
+        }`}>
+          <p className="text-sm">{message.message}</p>
+          <p className={`text-xs mt-1 ${
+            isOwn ? 'text-primary-100' : 'text-gray-500'
+          }`}>
+            {formatChatTime(message.created_at)}
+          </p>
+        </div>
+      )}
     </div>
   )
 }

@@ -13,16 +13,48 @@ export class StorageService {
     bucket: string = 'images',
     folder?: string
   ): Promise<string> {
+    return this.uploadFile(file, bucket, folder, 'image')
+  }
+
+  /**
+   * Upload any file to Supabase storage and return the public URL
+   * @param file - The file to upload
+   * @param bucket - The storage bucket name (default: 'images')
+   * @param folder - Optional folder path within the bucket
+   * @param fileType - Expected file type ('image', 'video', 'document', 'any')
+   * @returns Promise<string> - The public URL of the uploaded file
+   */
+  static async uploadFile(
+    file: File, 
+    bucket: string = 'images',
+    folder?: string,
+    fileType: 'image' | 'video' | 'document' | 'any' = 'any'
+  ): Promise<string> {
     try {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
+      if (fileType === 'image' && !file.type.startsWith('image/')) {
         throw new Error('File must be an image')
       }
+      
+      if (fileType === 'video' && !file.type.startsWith('video/')) {
+        throw new Error('File must be a video')
+      }
+      
+      if (fileType === 'document' && !this.isDocumentType(file.type)) {
+        throw new Error('File must be a document (PDF, DOC, DOCX, TXT, etc.)')
+      }
 
-      // Validate file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024 // 5MB
+      // Validate file size (max 50MB for videos, 10MB for documents, 5MB for images)
+      let maxSize = 5 * 1024 * 1024 // Default 5MB for images
+      if (fileType === 'video' || file.type.startsWith('video/')) {
+        maxSize = 50 * 1024 * 1024 // 50MB for videos
+      } else if (fileType === 'document' || this.isDocumentType(file.type)) {
+        maxSize = 10 * 1024 * 1024 // 10MB for documents
+      }
+      
       if (file.size > maxSize) {
-        throw new Error('File size must be less than 5MB')
+        const maxSizeMB = maxSize / (1024 * 1024)
+        throw new Error(`File size must be less than ${maxSizeMB}MB`)
       }
 
       // Generate unique filename
@@ -57,9 +89,56 @@ export class StorageService {
 
       return publicUrlData.publicUrl
     } catch (error) {
-      console.error('Error uploading image:', error)
+      console.error('Error uploading file:', error)
       throw error
     }
+  }
+
+  /**
+   * Check if file type is a document
+   * @param mimeType - The MIME type to check
+   * @returns boolean
+   */
+  static isDocumentType(mimeType: string): boolean {
+    const documentTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'text/csv',
+      'application/zip',
+      'application/x-zip-compressed'
+    ]
+    return documentTypes.includes(mimeType)
+  }
+
+  /**
+   * Get file type category from MIME type
+   * @param mimeType - The MIME type
+   * @returns string - 'image', 'video', 'document', or 'other'
+   */
+  static getFileCategory(mimeType: string): 'image' | 'video' | 'document' | 'other' {
+    if (mimeType.startsWith('image/')) return 'image'
+    if (mimeType.startsWith('video/')) return 'video'
+    if (this.isDocumentType(mimeType)) return 'document'
+    return 'other'
+  }
+
+  /**
+   * Format file size to human readable string
+   * @param bytes - File size in bytes
+   * @returns string - Formatted file size
+   */
+  static formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   /**

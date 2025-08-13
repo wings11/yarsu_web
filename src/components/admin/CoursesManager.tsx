@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
+import { SmartLink } from '@/components/ui/SmartLink'
 import { Trash2, Edit, Plus, MapPin, DollarSign, GraduationCap, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -310,8 +311,12 @@ export default function CoursesManager() {
                     <span>{course.duration}</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <MapPin className="h-4 w-4" />
-                    <span>{course.location || 'Location TBA'}</span>
+                    <SmartLink 
+                      text={course.location} 
+                      iconType="location"
+                      className="text-sm"
+                      fallbackText="Location TBA"
+                    />
                   </div>
                 </div>
 

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { Button } from '@/components/ui/Button'
 import ExpandableText from '@/components/ui/ExpandableText'
+import { SmartLink } from '@/components/ui/SmartLink'
 import { MapPin, CreditCard, Globe, Home, Briefcase, RefreshCw } from 'lucide-react'
 import type { Job } from '@/lib/supabase'
 
@@ -110,15 +111,25 @@ function JobCard({ job }: { job: Job }) {
 
         {/* Location */}
         <div className="flex items-center text-gray-600 mb-2">
-          <MapPin className="h-4 w-4 mr-2" />
-          <span className="text-sm">{job.job_location || 'Location not specified'}</span>
+          <SmartLink 
+            text={job.job_location} 
+            iconType="location"
+            className="text-sm"
+            fallbackText="Location not specified"
+          />
         </div>
 
         {/* Accommodation Location - Show only if stay is true and location exists */}
         {job.stay && job.location && (
           <div className="flex items-center text-gray-600 mb-4">
             <Home className="h-4 w-4 mr-2" />
-            <span className="text-sm">{t('acco')} {job.location}</span>
+            <span className="text-sm">{t('acco')} </span>
+            <SmartLink 
+              text={job.location} 
+              iconType="location"
+              className="text-sm"
+              showIcon={false}
+            />
           </div>
         )}
 

@@ -5,6 +5,7 @@ import { useCourses } from '@/hooks/useApi'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import ExpandableText from '@/components/ui/ExpandableText'
+import { SmartLink } from '@/components/ui/SmartLink'
 import { formatCurrency } from '@/lib/utils'
 import { MapPin, Clock } from 'lucide-react'
 import type { Course } from '@/lib/supabase'
@@ -53,8 +54,12 @@ function CourseCard({ course }: { course: Course }) {
         </h3>
 
         <div className="flex items-center text-gray-600 mb-2">
-          <MapPin className="h-4 w-4 mr-1" />
-          <span className="text-sm">{course.location}</span>
+          <SmartLink 
+            text={course.location} 
+            iconType="location"
+            className="text-sm"
+            fallbackText="Location TBA"
+          />
         </div>
 
         <div className="flex items-center text-gray-600 mb-3">
