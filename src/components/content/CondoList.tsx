@@ -1,19 +1,22 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useCondos } from '@/hooks/useApi'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import { useLanguage } from '@/contexts/LanguageContext'
 import ImageCarousel from '@/components/ui/ImageCarousel'
 import ExpandableText from '@/components/ui/ExpandableText'
+import CardStack from '@/components/ui/animations/CardStack'
+import { FadeInUp, StaggeredList, StaggeredItem, AnimatedButton } from '@/components/ui/animations/MicroAnimations'
 import { formatCurrency } from '@/lib/utils'
-import { MapPin, Wifi, Dumbbell, Trees, Briefcase, Waves } from 'lucide-react'
+import { MapPin, Wifi, Dumbbell, Trees, Briefcase, Waves, LayoutGrid, Layers } from 'lucide-react'
 import type { Condo } from '@/lib/supabase'
 
 export default function CondoList() {
-  const{t}=useLanguage()
+  const { t } = useLanguage()
   const { data: condos, isLoading, error } = useCondos()
+  const [viewMode, setViewMode] = useState<'grid' | 'stack'>('grid')
 
   if (isLoading) {
     return (
@@ -25,24 +28,66 @@ export default function CondoList() {
 
   if (error) {
     return (
-      <div className="text-center text-red-600 p-8">
+      <FadeInUp className="text-center text-red-600 p-8">
         <p>Failed to load condos. Please try again later.</p>
-      </div>
+      </FadeInUp>
     )
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('condos')}</h1>
-        <p className="text-gray-600">{t('longTermAccommodation')}</p>
-      </div>
+      <FadeInUp className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('condos')}</h1>
+            <p className="text-gray-600">{t('longTermAccommodation')}</p>
+          </div>
+          
+          {/* View mode toggle */}
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <AnimatedButton
+              onClick={() => setViewMode('grid')}
+              variant="scale"
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'grid' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <LayoutGrid className="h-5 w-5" />
+            </AnimatedButton>
+            <AnimatedButton
+              onClick={() => setViewMode('stack')}
+              variant="scale"
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'stack' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Layers className="h-5 w-5" />
+            </AnimatedButton>
+          </div>
+        </div>
+      </FadeInUp>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {condos?.map((condo: Condo) => (
-          <CondoCard key={condo.id} condo={condo} />
-        ))}
-      </div>
+      {viewMode === 'stack' ? (
+        <FadeInUp delay={0.3} className="max-w-md mx-auto">
+          <CardStack
+            items={condos}
+            renderCard={(condo, index) => <CondoCard key={condo.id} condo={condo} />}
+            className="mb-8"
+          />
+        </FadeInUp>
+      ) : (
+        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {condos?.map((condo: Condo, index: number) => (
+            <StaggeredItem key={condo.id}>
+              <CondoCard condo={condo} />
+            </StaggeredItem>
+          ))}
+        </StaggeredList>
+      )}
     </div>
   )
 }

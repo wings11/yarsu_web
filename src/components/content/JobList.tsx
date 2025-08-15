@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useJobs } from '@/hooks/useApi'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -8,12 +8,15 @@ import { LoadingSpinner } from '@/components/ui/Loading'
 import { Button } from '@/components/ui/Button'
 import ExpandableText from '@/components/ui/ExpandableText'
 import { SmartLink } from '@/components/ui/SmartLink'
-import { MapPin, CreditCard, Globe, Home, Briefcase, RefreshCw } from 'lucide-react'
+import CardStack from '@/components/ui/animations/CardStack'
+import { FadeInUp, StaggeredList, StaggeredItem, AnimatedButton } from '@/components/ui/animations/MicroAnimations'
+import { MapPin, CreditCard, Globe, Home, Briefcase, RefreshCw, LayoutGrid, Layers, ChevronLeft, ChevronRight, Hand, ArrowLeft, ArrowRight } from 'lucide-react'
 import type { Job } from '@/lib/supabase'
 
 export default function JobList() {
   const { data: jobs, isLoading, error, refetch } = useJobs()
   const { t } = useLanguage()
+  const [viewMode, setViewMode] = useState<'grid' | 'stack'>('grid')
 
   if (isLoading) {
     return (
@@ -25,7 +28,7 @@ export default function JobList() {
 
   if (error) {
     return (
-      <div className="text-center text-red-600 p-8">
+      <FadeInUp className="text-center text-red-600 p-8">
         <p>{t('failedLoadJobs')}</p>
         <div className="mt-4 text-sm text-gray-600">
           <p>This might be due to:</p>
@@ -36,45 +39,106 @@ export default function JobList() {
           </ul>
         </div>
         <div className="mt-4">
-          <Button onClick={() => refetch()} variant="secondary">
+          <AnimatedButton 
+            onClick={() => refetch()} 
+            variant="bounce"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             {t('tryAgain')}
-          </Button>
+          </AnimatedButton>
         </div>
-      </div>
+      </FadeInUp>
     )
   }
 
   if (!jobs || jobs.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+        <FadeInUp className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('jobs')}</h1>
           <p className="text-gray-600">{t('findCareerOpportunity')}</p>
-        </div>
-        <div className="text-center py-12">
+        </FadeInUp>
+        <FadeInUp delay={0.2} className="text-center py-12">
           <div className="text-gray-500">
             <Briefcase className="h-16 w-16 mx-auto mb-4 opacity-50" />
             <h3 className="text-lg font-medium mb-2">{t('noJobsAvailable')}</h3>
             <p>{t('checkBackLater')}</p>
           </div>
-        </div>
+        </FadeInUp>
       </div>
     )
   }
 
+  const handleSwipeRight = (job: Job) => {
+    console.log('Viewed job:', job.title)
+    // Just for logging, no action buttons
+  }
+
+  const handleSwipeLeft = (job: Job) => {
+    console.log('Viewed job:', job.title)
+    // Just for logging, no action buttons
+  }
+
+  const handleSwipeUp = (job: Job) => {
+    console.log('Viewed job details:', job.title)
+    // Just for logging, no action buttons
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('jobs')}</h1>
-        <p className="text-gray-600">{t('findCareerOpportunity')}</p>
-      </div>
+      <FadeInUp className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('jobs')}</h1>
+            <p className="text-gray-600">{t('findCareerOpportunity')}</p>
+          </div>
+          
+          {/* View mode toggle */}
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <AnimatedButton
+              onClick={() => setViewMode('grid')}
+              variant="scale"
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'grid' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <LayoutGrid className="h-5 w-5" />
+            </AnimatedButton>
+            <AnimatedButton
+              onClick={() => setViewMode('stack')}
+              variant="scale"
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'stack' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Layers className="h-5 w-5" />
+            </AnimatedButton>
+          </div>
+        </div>
+      </FadeInUp>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {jobs?.map((job: Job) => (
-          <JobCard key={job.id} job={job} />
-        ))}
-      </div>
+      {viewMode === 'stack' ? (
+        <FadeInUp delay={0.3} className="max-w-md mx-auto">
+          <CardStack
+            items={jobs}
+            renderCard={(job, index) => <JobCard key={job.id} job={job} />}
+            className="mb-8"
+          />
+        </FadeInUp>
+      ) : (
+        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {jobs?.map((job: Job, index: number) => (
+            <StaggeredItem key={job.id}>
+              <JobCard job={job} />
+            </StaggeredItem>
+          ))}
+        </StaggeredList>
+      )}
     </div>
   )
 }
@@ -133,9 +197,9 @@ function JobCard({ job }: { job: Job }) {
           </div>
         )}
 
-        {/* Features */}
+        {/* All Features */}
         <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-2">Features:</h4>
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Key Features:</h4>
           <div className="flex flex-wrap gap-2">
             {features.map(({ key, icon: Icon, label, color }) => {
               if (key === 'payment_type' && job[key as keyof Job]) {
@@ -167,15 +231,6 @@ function JobCard({ job }: { job: Job }) {
             />
           </div>
         )}
-
-        {/* Apply Button - TODO: Implement in later version */}
-        {/* 
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <Button className="w-full" size="sm">
-            Apply Now
-          </Button>
-        </div>
-        */}
       </CardContent>
     </Card>
   )

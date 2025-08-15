@@ -1,17 +1,20 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useCourses } from '@/hooks/useApi'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
 import ExpandableText from '@/components/ui/ExpandableText'
 import { SmartLink } from '@/components/ui/SmartLink'
+import CardStack from '@/components/ui/animations/CardStack'
+import { FadeInUp, StaggeredList, StaggeredItem, AnimatedButton } from '@/components/ui/animations/MicroAnimations'
 import { formatCurrency } from '@/lib/utils'
-import { MapPin, Clock } from 'lucide-react'
+import { MapPin, Clock, LayoutGrid, Layers } from 'lucide-react'
 import type { Course } from '@/lib/supabase'
 
 export default function CourseList() {
   const { data: courses, isLoading, error } = useCourses()
+  const [viewMode, setViewMode] = useState<'grid' | 'stack'>('grid')
 
   if (isLoading) {
     return (
@@ -23,24 +26,66 @@ export default function CourseList() {
 
   if (error) {
     return (
-      <div className="text-center text-red-600 p-8">
+      <FadeInUp className="text-center text-red-600 p-8">
         <p>Failed to load courses. Please try again later.</p>
-      </div>
+      </FadeInUp>
     )
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Courses</h1>
-        <p className="text-gray-600">Learn new skills and advance your career</p>
-      </div>
+      <FadeInUp className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Courses</h1>
+            <p className="text-gray-600">Learn new skills and advance your career</p>
+          </div>
+          
+          {/* View mode toggle */}
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <AnimatedButton
+              onClick={() => setViewMode('grid')}
+              variant="scale"
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'grid' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <LayoutGrid className="h-5 w-5" />
+            </AnimatedButton>
+            <AnimatedButton
+              onClick={() => setViewMode('stack')}
+              variant="scale"
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'stack' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Layers className="h-5 w-5" />
+            </AnimatedButton>
+          </div>
+        </div>
+      </FadeInUp>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses?.map((course: Course) => (
-          <CourseCard key={course.id} course={course} />
-        ))}
-      </div>
+      {viewMode === 'stack' ? (
+        <FadeInUp delay={0.3} className="max-w-md mx-auto">
+          <CardStack
+            items={courses}
+            renderCard={(course, index) => <CourseCard key={course.id} course={course} />}
+            className="mb-8"
+          />
+        </FadeInUp>
+      ) : (
+        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {courses?.map((course: Course, index: number) => (
+            <StaggeredItem key={course.id}>
+              <CourseCard course={course} />
+            </StaggeredItem>
+          ))}
+        </StaggeredList>
+      )}
     </div>
   )
 }

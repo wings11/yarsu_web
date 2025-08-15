@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useHotels } from '@/hooks/useApi'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -8,13 +8,16 @@ import { LoadingSpinner } from '@/components/ui/Loading'
 import { Button } from '@/components/ui/Button'
 import ImageCarousel from '@/components/ui/ImageCarousel'
 import ExpandableText from '@/components/ui/ExpandableText'
+import CardStack from '@/components/ui/animations/CardStack'
+import { FadeInUp, StaggeredList, StaggeredItem, AnimatedButton } from '@/components/ui/animations/MicroAnimations'
 import { formatCurrency } from '@/lib/utils'
-import { Star, MapPin, Wifi, Car, Waves, Coffee, Building, RefreshCw } from 'lucide-react'
+import { Star, MapPin, Wifi, Car, Waves, Coffee, Building, RefreshCw, LayoutGrid, Layers } from 'lucide-react'
 import type { Hotel } from '@/lib/supabase'
 
 export default function HotelList() {
   const { data: hotels, isLoading, error, status, refetch } = useHotels()
   const { t } = useLanguage()
+  const [viewMode, setViewMode] = useState<'grid' | 'stack'>('grid')
 
   if (isLoading) {
     return (
@@ -26,7 +29,7 @@ export default function HotelList() {
 
   if (error) {
     return (
-      <div className="text-center text-red-600 p-8">
+      <FadeInUp className="text-center text-red-600 p-8">
         <p>{t('failedLoadHotels')}</p>
         <div className="mt-4 text-sm text-gray-600">
           <p>This might be due to:</p>
@@ -37,45 +40,91 @@ export default function HotelList() {
           </ul>
         </div>
         <div className="mt-4">
-          <Button onClick={() => refetch()} variant="secondary">
+          <AnimatedButton 
+            onClick={() => refetch()} 
+            variant="bounce"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
             {t('tryAgain')}
-          </Button>
+          </AnimatedButton>
         </div>
-      </div>
+      </FadeInUp>
     )
   }
 
   if (!hotels || hotels.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+        <FadeInUp className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('hotels')}</h1>
           <p className="text-gray-600">{t('findPerfectStay')}</p>
-        </div>
-        <div className="text-center py-12">
+        </FadeInUp>
+        <FadeInUp delay={0.2} className="text-center py-12">
           <div className="text-gray-500">
             <Building className="h-16 w-16 mx-auto mb-4 opacity-50" />
             <h3 className="text-lg font-medium mb-2">{t('noHotelsAvailable')}</h3>
             <p>{t('checkBackLater')}</p>
           </div>
-        </div>
+        </FadeInUp>
       </div>
     )
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('hotels')}</h1>
-        <p className="text-gray-600">{t('findPerfectStay')}</p>
-      </div>
+      <FadeInUp className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('hotels')}</h1>
+            <p className="text-gray-600">{t('findPerfectStay')}</p>
+          </div>
+          
+          {/* View mode toggle */}
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <AnimatedButton
+              onClick={() => setViewMode('grid')}
+              variant="scale"
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'grid' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <LayoutGrid className="h-5 w-5" />
+            </AnimatedButton>
+            <AnimatedButton
+              onClick={() => setViewMode('stack')}
+              variant="scale"
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'stack' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Layers className="h-5 w-5" />
+            </AnimatedButton>
+          </div>
+        </div>
+      </FadeInUp>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {hotels?.map((hotel: Hotel) => (
-          <HotelCard key={hotel.id} hotel={hotel} />
-        ))}
-      </div>
+      {viewMode === 'stack' ? (
+        <FadeInUp delay={0.3} className="max-w-md mx-auto">
+          <CardStack
+            items={hotels}
+            renderCard={(hotel, index) => <HotelCard key={hotel.id} hotel={hotel} />}
+            className="mb-8"
+          />
+        </FadeInUp>
+      ) : (
+        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {hotels?.map((hotel: Hotel, index: number) => (
+            <StaggeredItem key={hotel.id}>
+              <HotelCard hotel={hotel} />
+            </StaggeredItem>
+          ))}
+        </StaggeredList>
+      )}
     </div>
   )
 }
