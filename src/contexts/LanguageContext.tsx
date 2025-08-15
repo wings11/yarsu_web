@@ -92,8 +92,24 @@ const translations = {
     // Auth
     email: 'Email',
     password: 'Password',
+    confirmPassword: 'Confirm Password',
     login: 'Login',
     signup: 'Sign Up',
+    forgotPassword: 'Forgot your password?',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    
+    // Auth errors
+    invalidCredentials: 'Invalid email or password. Please check your credentials and try again.',
+    emailNotConfirmed: 'Please check your email and click the confirmation link before signing in.',
+    tooManyRequests: 'Too many login attempts. Please wait a few minutes and try again.',
+    userNotFound: 'No account found with this email address. Please sign up first.',
+    passwordsNoMatch: 'Passwords do not match',
+    passwordTooShort: 'Password must be at least 6 characters',
+    emailAlreadyExists: 'An account with this email already exists. Please sign in instead.',
+    invalidEmail: 'Please enter a valid email address.',
+    accountCreatedSuccess: 'Account created successfully!',
+    redirectingMessage: 'You are now signed in. Redirecting to homepage...',
     
     // Features
     name: 'Name',
@@ -239,8 +255,24 @@ const translations = {
     // Auth
     email: 'အီးမေးလ်',
     password: 'စကားဝှက်',
+    confirmPassword: 'စကားဝှက် အတည်ပြု',
     login: 'ဝင်ရောက်',
     signup: 'စာရင်းသွင်း',
+    forgotPassword: 'စကားဝှက် မေ့နေသလား?',
+    showPassword: 'စကားဝှက် ပြရန်',
+    hidePassword: 'စကားဝှက် ဖုံးရန်',
+    
+    // Auth errors
+    invalidCredentials: 'အီးမေးလ် သို့မဟုတ် စကားဝှက် မမှန်ကန်ပါ။ ထပ်မံ ကြိုးစားပါ။',
+    emailNotConfirmed: 'သင့်အီးမေးလ်ကို စစ်ဆေးပြီး အတည်ပြုလင့်ခ်ကို နှိပ်ပါ။',
+    tooManyRequests: 'လော့ဂ်အင် ကြိုးစားမှု များလွန်းပါသည်။ ခဏစောင့်ပြီး ပြန်ကြိုးစားပါ။',
+    userNotFound: 'ဤအီးမေးလ်ဖြင့် အကောင့်မရှိပါ။ အရင် စာရင်းသွင်းပါ။',
+    passwordsNoMatch: 'စကားဝှက်များ မတူညီပါ',
+    passwordTooShort: 'စကားဝှက်သည် အနည်းဆုံး ၆ လုံး ရှိရမည်',
+    emailAlreadyExists: 'ဤအီးမေးလ်ဖြင့် အကောင့်ရှိပြီးသားဖြစ်သည်။ ဝင်ရောက်ပါ။',
+    invalidEmail: 'မှန်ကန်သော အီးမေးလ် လိပ်စာ ရိုက်ထည့်ပါ။',
+    accountCreatedSuccess: 'အကောင့် အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ!',
+    redirectingMessage: 'သင်ဝင်ရောက်ပြီးပါပြီ။ ပင်မစာမျက်နှာသို့ ပို့ပေးနေသည်...',
     
     // Features
     name: 'အမည်',
@@ -319,7 +351,7 @@ const translations = {
     failedSignIn: 'ဝင်ရောက်၍ မရပါ',
     failedSignUp: 'စာရင်းသွင်း၍ မရပါ',
     alreadyHaveAccount: 'အကောင့်ရှိပြီးသားလား?',
-    dontHaveAccount: 'အကောင့်မရှိသေးလား?',
+    dontHaveAccount: 'အကောင့်မရှိသေးဘူးလား?',
     signInHere: 'ဒီမှာ ဝင်ရောက်ပါ',
     signUpHere: 'ဒီမှာ စာရင်းသွင်းပါ',
     acco: 'နေထိုင်ရန် နေရာ:-',
@@ -336,7 +368,7 @@ const translations = {
     highlights: 'ဦးစားပေး အချက်များ',
     analytics: 'စာရင်းအင်းများ',
     accessDenied: 'ဝင်ခွင့်ပြုမထားပါ',
-    needAdminPrivileges: 'ဤစာမျက်နှာကို ဝင်ရောက်ရန် စီမံခန့်ခွဲသူ အခွင့်အရေး လိုအပ်သည်',
+    needAdminPrivileges: 'ဤစာမျက်နှာကို ဝင်ရောက်ရန် Adminဖြစ်ရန် လိုအပ်သည်',
     currentRole: 'လက်ရှိ အခန်းကဏ္ဍ',
     contactAdmin: 'သင့်အကောင့် ခွင့်ပြုချက်များ မြှင့်တင်ရန် စနစ် စီမံခန့်ခွဲသူကို ဆက်သွယ်ပါ',
     manageJobPostings: 'အလုပ်တွေ့ကြေငြာများနှင့် အခွင့်အလမ်းများကို စီမံခန့်ခွဲပါ',

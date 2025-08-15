@@ -4,42 +4,58 @@ import React, { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { StorageService } from '@/lib/storage'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
 import { Trash2, Edit, Plus, MapPin, DollarSign, Home, Bed } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Condo {
   id: number
-  title: string
+  name: string
   address: string
-  price: number
-  bedrooms: number
-  bathrooms: number
-  floor: number
-  size_sqm: number
-  furnished: boolean
-  balcony: boolean
-  parking: boolean
+  rent_fee: number
   images: string[]
+  swimming_pool: boolean
+  free_wifi: boolean
+  gym: boolean
+  garden: boolean
+  co_working_space: boolean
   notes?: string
   created_at: string
 }
 
 export default function CondosManager() {
+  const { t } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [editingCondo, setEditingCondo] = useState<Condo | null>(null)
-  const [formData, setFormData] = useState({
-    title: '',
+  
+  const defaultFormData = {
+    name: '',
     address: '',
-    price: 0,
-    bedrooms: 1,
-    bathrooms: 1,
-    floor: 1,
-    size_sqm: 0,
-    furnished: false,
-    balcony: false,
-    parking: false,
+    rent_fee: 0,
     images: [''],
+    swimming_pool: false,
+    free_wifi: false,
+    gym: false,
+    garden: false,
+    co_working_space: false,
     notes: ''
+  }
+
+  // Form persistence
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'condos-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
   })
 
   const queryClient = useQueryClient()
@@ -64,11 +80,12 @@ export default function CondosManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['condos'] })
       resetForm()
-      toast.success('Condo created successfully!')
+      clearDraft()
+      toast.success(t('condoCreatedSuccessfully') || 'Condo created successfully!')
     },
     onError: (error) => {
       console.error('Create condo error:', error)
-      toast.error('Failed to create condo')
+      toast.error(t('failedToCreateCondo') || 'Failed to create condo')
     }
   })
 
@@ -80,11 +97,11 @@ export default function CondosManager() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['condos'] })
-      toast.success('Condo deleted successfully!')
+      toast.success(t('condoDeletedSuccessfully') || 'Condo deleted successfully!')
     },
     onError: (error) => {
       console.error('Delete condo error:', error)
-      toast.error('Failed to delete condo')
+      toast.error(t('failedToDeleteCondo') || 'Failed to delete condo')
     }
   })
 
@@ -99,46 +116,32 @@ export default function CondosManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['condos'] })
       resetForm()
-      toast.success('Condo updated successfully!')
+      clearDraft()
+      toast.success(t('condoUpdatedSuccessfully') || 'Condo updated successfully!')
     },
     onError: (error) => {
       console.error('Update condo error:', error)
-      toast.error('Failed to update condo')
+      toast.error(t('failedToUpdateCondo') || 'Failed to update condo')
     }
   })
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      address: '',
-      price: 0,
-      bedrooms: 1,
-      bathrooms: 1,
-      floor: 1,
-      size_sqm: 0,
-      furnished: false,
-      balcony: false,
-      parking: false,
-      images: [''],
-      notes: ''
-    })
+    resetFormPersistence()
     setIsEditing(false)
     setEditingCondo(null)
   }
 
   const handleEdit = (condo: Condo) => {
     setEditingCondo(condo)
-    setFormData({
-      title: condo.title,
+    updateFormData({
+      name: condo.name,
       address: condo.address,
-      price: condo.price,
-      bedrooms: condo.bedrooms,
-      bathrooms: condo.bathrooms,
-      floor: condo.floor,
-      size_sqm: condo.size_sqm,
-      furnished: condo.furnished,
-      balcony: condo.balcony,
-      parking: condo.parking,
+      rent_fee: condo.rent_fee,
+      swimming_pool: condo.swimming_pool,
+      free_wifi: condo.free_wifi,
+      gym: condo.gym,
+      garden: condo.garden,
+      co_working_space: condo.co_working_space,
       images: condo.images.length > 0 ? condo.images : [''],
       notes: condo.notes || ''
     })
@@ -148,8 +151,8 @@ export default function CondosManager() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.title.trim() || !formData.address.trim() || formData.price <= 0) {
-      toast.error('Please fill in all required fields')
+    if (!formData.name.trim() || !formData.address.trim() || formData.rent_fee <= 0) {
+      toast.error(t('fillRequiredFields') || 'Please fill in all required fields')
       return
     }
 
@@ -166,14 +169,13 @@ export default function CondosManager() {
   }
 
   const handleDelete = (condoId: number) => {
-    if (window.confirm('Are you sure you want to delete this condo?')) {
+    if (window.confirm(t('confirmDeleteCondo') || 'Are you sure you want to delete this condo?')) {
       deleteMutation.mutate(condoId)
     }
   }
 
   const addArrayField = () => {
-    setFormData({
-      ...formData,
+    updateFormData({
       images: [...formData.images, '']
     })
   }
@@ -181,16 +183,14 @@ export default function CondosManager() {
   const updateArrayField = (index: number, value: string) => {
     const newArray = [...formData.images]
     newArray[index] = value
-    setFormData({
-      ...formData,
+    updateFormData({
       images: newArray
     })
   }
 
   const removeArrayField = (index: number) => {
     const newArray = formData.images.filter((_, i) => i !== index)
-    setFormData({
-      ...formData,
+    updateFormData({
       images: newArray.length > 0 ? newArray : ['']
     })
   }
@@ -232,13 +232,13 @@ export default function CondosManager() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Condos Management</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('condosManagement') || 'Condos Management'}</h2>
         <button
           onClick={() => setIsEditing(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
         >
           <Plus className="h-4 w-4" />
-          <span>Add Condo</span>
+          <span>{t('addCondo') || 'Add Condo'}</span>
         </button>
       </div>
 
@@ -248,147 +248,150 @@ export default function CondosManager() {
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-4">
-                {editingCondo ? 'Edit Condo' : 'Create New Condo'}
+                {editingCondo ? (t('editCondo') || 'Edit Condo') : (t('createNewCondo') || 'Create New Condo')}
               </h3>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Information */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
+                    <Home className="h-4 w-4 mr-2" />
+                    {t('basicInformation') || 'Basic Information'}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t('condoName') || 'Condo Name'} *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => updateFormData({ name: e.target.value })}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder={t('enterCondoName') || 'Enter condo name'}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t('monthlyRent') || 'Monthly Rent (THB)'} *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-3 text-gray-500">₿</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.rent_fee === 0 ? '' : formData.rent_fee}
+                          onChange={(e) => updateFormData({ rent_fee: parseFloat(e.target.value) || 0 })}
+                          className="w-full p-3 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title *
+                      {t('address') || 'Address'} *
                     </label>
                     <input
                       type="text"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      value={formData.address}
+                      onChange={(e) => updateFormData({ address: e.target.value })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter condo title"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price (THB) *
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Monthly rent"
+                      placeholder={t('condoAddress') || 'Condo address'}
                       required
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Condo address"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bedrooms
+                {/* Amenities */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                    {t('amenities') || 'Amenities'}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.swimming_pool}
+                        onChange={(e) => updateFormData({ swimming_pool: e.target.checked })}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-700">{t('swimmingPool') || 'Swimming Pool'}</span>
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.bedrooms}
-                      onChange={(e) => setFormData({ ...formData, bedrooms: parseInt(e.target.value) || 1 })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bathrooms
+                    <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.free_wifi}
+                        onChange={(e) => updateFormData({ free_wifi: e.target.checked })}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-700">{t('freeWifi') || 'Free WiFi'}</span>
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.bathrooms}
-                      onChange={(e) => setFormData({ ...formData, bathrooms: parseInt(e.target.value) || 1 })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Floor
+                    <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.gym}
+                        onChange={(e) => updateFormData({ gym: e.target.checked })}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-700">{t('gym') || 'Gym'}</span>
                     </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={formData.floor}
-                      onChange={(e) => setFormData({ ...formData, floor: parseInt(e.target.value) || 1 })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Size (sqm)
+                    <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.garden}
+                        onChange={(e) => updateFormData({ garden: e.target.checked })}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-700">{t('garden') || 'Garden'}</span>
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.size_sqm}
-                      onChange={(e) => setFormData({ ...formData, size_sqm: parseFloat(e.target.value) || 0 })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+
+                    <label className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-white transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.co_working_space}
+                        onChange={(e) => updateFormData({ co_working_space: e.target.checked })}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-700">{t('coWorkingSpace') || 'Co-working Space'}</span>
+                    </label>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.furnished}
-                      onChange={(e) => setFormData({ ...formData, furnished: e.target.checked })}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Furnished</span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.balcony}
-                      onChange={(e) => setFormData({ ...formData, balcony: e.target.checked })}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Balcony</span>
-                  </label>
-
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.parking}
-                      onChange={(e) => setFormData({ ...formData, parking: e.target.checked })}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Parking</span>
-                  </label>
                 </div>
 
                 {/* Images */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Condo Images
-                  </label>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {t('images') || 'Images'}
+                  </h4>
                   {formData.images.map((image, index) => (
                     <div key={index} className="space-y-2 mb-4">
                       <div className="flex items-center space-x-2">
@@ -403,7 +406,7 @@ export default function CondosManager() {
                           <button
                             type="button"
                             onClick={() => removeArrayField(index)}
-                            className="p-3 text-red-600 hover:bg-red-50 rounded-lg"
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -441,22 +444,26 @@ export default function CondosManager() {
                   <button
                     type="button"
                     onClick={addArrayField}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                   >
                     + Add Another Image
                   </button>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
-                  </label>
+                {/* Notes */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                    {t('notes') || 'Notes'}
+                  </h4>
                   <textarea
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Additional information about the condo"
+                    onChange={(e) => updateFormData({ notes: e.target.value })}
+                    rows={4}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                    placeholder={t('additionalInfo') || 'Additional information about the condo'}
                   />
                 </div>
 
@@ -466,14 +473,17 @@ export default function CondosManager() {
                     onClick={resetForm}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                   >
-                    Cancel
+                    {t('cancel') || 'Cancel'}
                   </button>
                   <button
                     type="submit"
                     disabled={createMutation.isPending || updateMutation.isPending}
                     className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save Condo'}
+                    {createMutation.isPending || updateMutation.isPending 
+                      ? (t('saving') || 'Saving...') 
+                      : (t('saveCondo') || 'Save Condo')
+                    }
                   </button>
                 </div>
               </form>
@@ -489,7 +499,7 @@ export default function CondosManager() {
             <div key={condo.id} className="bg-white border border-gray-200 rounded-lg p-6">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{condo.title || 'Untitled'}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{condo.name || 'Untitled'}</h3>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
@@ -498,32 +508,34 @@ export default function CondosManager() {
                     </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <DollarSign className="h-4 w-4" />
-                    <span>₿{condo.price?.toLocaleString() || 'N/A'}/month</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Bed className="h-4 w-4" />
-                    <span>{condo.bedrooms || 0} bed, {condo.bathrooms || 0} bath</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Home className="h-4 w-4" />
-                    <span>{condo.size_sqm || 'N/A'} sqm, Floor {condo.floor || 'N/A'}</span>
+                    <span>₿{condo.rent_fee?.toLocaleString() || 'N/A'}/month</span>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {condo.furnished && (
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                      Furnished
+                  {condo.swimming_pool && (
+                    <span className="px-2 py-1 bg-cyan-100 text-cyan-800 text-xs rounded-full">
+                      Pool
                     </span>
                   )}
-                  {condo.balcony && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                      Balcony
+                  {condo.free_wifi && (
+                    <span className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">
+                      WiFi
                     </span>
                   )}
-                  {condo.parking && (
-                    <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                      Parking
+                  {condo.gym && (
+                    <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                      Gym
+                    </span>
+                  )}
+                  {condo.garden && (
+                    <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full">
+                      Garden
+                    </span>
+                  )}
+                  {condo.co_working_space && (
+                    <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
+                      Co-working
                     </span>
                   )}
                 </div>
@@ -549,7 +561,7 @@ export default function CondosManager() {
               </div>
             </div>
           </div>
-          ))
+        ))
         ) : (
           <div className="text-center py-8 text-gray-500">
             {condos && condos.length === 0 ? 'No condos found. Create your first condo listing!' : 'Loading condos...'}

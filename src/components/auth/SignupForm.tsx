@@ -4,9 +4,11 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent } from '@/components/ui/Card'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import toast from 'react-hot-toast'
 
 export default function SignupForm() {
@@ -17,6 +19,7 @@ export default function SignupForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const { signUp } = useAuth()
+  const { t } = useLanguage()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,12 +28,12 @@ export default function SignupForm() {
     setSuccess(false)
     
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('passwordsNoMatch'))
       return
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(t('passwordTooShort'))
       return
     }
 
@@ -44,22 +47,21 @@ export default function SignupForm() {
       setPassword('')
       setConfirmPassword('')
       // Show success message and redirect after delay
-      toast.success('Account created successfully! You are now signed in.')
+      toast.success(t('accountCreatedSuccess'))
       setTimeout(() => {
         router.push('/')
       }, 2000) // 2 second delay to show success message
     } catch (error: any) {
-      let errorMessage = 'Failed to create account'
+      let errorMessage = t('failedSignUp')
       
       if (error.message.includes('User already registered') || 
           error.message.includes('email already exists')) {
-        errorMessage = 'An account with this email already exists. Please sign in instead.'
+        errorMessage = t('emailAlreadyExists')
       } else if (error.message.includes('Password should be at least')) {
-        errorMessage = 'Password must be at least 6 characters long.'
-      } else if (error.message.includes('Unable to validate email address')) {
-        errorMessage = 'Please enter a valid email address.'
-      } else if (error.message.includes('Invalid email')) {
-        errorMessage = 'Please enter a valid email address.'
+        errorMessage = t('passwordTooShort')
+      } else if (error.message.includes('Unable to validate email address') ||
+                 error.message.includes('Invalid email')) {
+        errorMessage = t('invalidEmail')
       } else if (error.message) {
         errorMessage = error.message
       }
@@ -72,17 +74,22 @@ export default function SignupForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Language Switcher - Top Right */}
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSwitcher size="sm" className="shadow-sm" />
+      </div>
+
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <img src="/images/logo.png" alt="Logo" className="h-12 w-auto" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('createAccount')}</h2>
           <p className="mt-2 text-sm text-gray-600">
-            Already have an account?{' '}
+            {t('alreadyHaveAccount')}{' '}
             <Link href="/login" className="text-primary-600 hover:text-primary-500">
-              Sign in here
+              {t('signInHere')}
             </Link>
           </p>
         </div>
@@ -96,8 +103,8 @@ export default function SignupForm() {
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   <div>
-                    <p className="font-medium">Account created successfully!</p>
-                    <p className="text-sm">You are now signed in. Redirecting to homepage...</p>
+                    <p className="font-medium">{t('accountCreatedSuccess')}</p>
+                    <p className="text-sm">{t('redirectingMessage')}</p>
                   </div>
                 </div>
               </div>
@@ -105,33 +112,35 @@ export default function SignupForm() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <Input
-                label="Email address"
+                label={t('email')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="Enter your email"
+                placeholder={t('email')}
                 disabled={success}
               />
 
               <Input
-                label="Password"
+                label={t('password')}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="Enter your password"
+                placeholder={t('password')}
                 disabled={success}
+                showPasswordToggle={true}
               />
 
               <Input
-                label="Confirm Password"
+                label={t('confirmPassword')}
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                placeholder="Confirm your password"
+                placeholder={t('confirmPassword')}
                 disabled={success}
+                showPasswordToggle={true}
               />
 
               {error && (
@@ -142,10 +151,10 @@ export default function SignupForm() {
                     </svg>
                     <div>
                       <p>{error}</p>
-                      {error.includes('email already exists') && (
+                      {(error.includes('email already exists') || error === t('emailAlreadyExists')) && (
                         <p className="mt-1">
                           <Link href="/login" className="text-red-800 underline hover:text-red-900">
-                            Go to sign in page
+                            {t('signInHere')}
                           </Link>
                         </p>
                       )}
@@ -160,7 +169,7 @@ export default function SignupForm() {
                 className="w-full"
                 disabled={success}
               >
-                {success ? 'Account Created!' : 'Sign Up'}
+                {success ? t('accountCreatedSuccess') : t('signup')}
               </Button>
             </form>
           </CardContent>

@@ -102,10 +102,10 @@ function HotelCard({ hotel }: { hotel: Hotel }) {
       
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 truncate flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 flex-1 leading-tight">
             {hotel.name}
           </h3>
-          <div className="flex items-center text-yellow-500 ml-2">
+          <div className="flex items-center text-yellow-500 ml-2 flex-shrink-0">
             <Star className="h-4 w-4 fill-current" />
             <span className="text-sm text-gray-600 ml-1">{hotel.admin_rating}</span>
           </div>

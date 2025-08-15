@@ -3,11 +3,14 @@
 import React, { useState, useRef } from 'react'
 import { useHighlights } from '@/hooks/useApi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Calendar, Plus, Edit, Trash2, Star, Upload } from 'lucide-react'
 import type { Highlight } from '@/lib/supabase'
 import { StorageService } from '@/lib/storage'
+import { apiService } from '@/lib/api'
+import toast from 'react-hot-toast'
 
 export default function HighlightsManager() {
   const [isCreating, setIsCreating] = useState(false)
@@ -15,53 +18,79 @@ export default function HighlightsManager() {
   const { data: highlights, isLoading } = useHighlights()
   const queryClient = useQueryClient()
 
+  const defaultFormData = {
+    image: ''
+  }
+
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'highlights-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
+  })
+
   // Create highlight mutation
   const createHighlightMutation = useMutation({
-    mutationFn: async (highlightData: { image: string }) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/highlights`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(highlightData)
-      })
-      if (!response.ok) throw new Error('Failed to create highlight')
-      return response.json()
-    },
+    mutationFn: (highlightData: { image: string }) => apiService.createHighlight(highlightData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['highlights'] })
-      setIsCreating(false)
+      resetForm()
+      toast.success('Highlight created successfully!')
+    },
+    onError: (error) => {
+      console.error('Create highlight error:', error)
+      toast.error('Failed to create highlight')
     }
   })
 
   // Update highlight mutation
   const updateHighlightMutation = useMutation({
-    mutationFn: async ({ id, image }: { id: number; image: string }) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/highlights/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image })
-      })
-      if (!response.ok) throw new Error('Failed to update highlight')
-      return response.json()
-    },
+    mutationFn: ({ id, ...highlightData }: { id: number } & typeof formData) => apiService.updateHighlight(id, highlightData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['highlights'] })
-      setEditingHighlight(null)
+      resetForm()
+      toast.success('Highlight updated successfully!')
+    },
+    onError: (error) => {
+      console.error('Update highlight error:', error)
+      toast.error('Failed to update highlight')
     }
   })
 
   // Delete highlight mutation
   const deleteHighlightMutation = useMutation({
-    mutationFn: async (highlightId: number) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/highlights/${highlightId}`, {
-        method: 'DELETE'
-      })
-      if (!response.ok) throw new Error('Failed to delete highlight')
-      return response.json()
-    },
+    mutationFn: (highlightId: number) => apiService.deleteHighlight(highlightId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['highlights'] })
+      toast.success('Highlight deleted successfully!')
+    },
+    onError: (error) => {
+      console.error('Delete highlight error:', error)
+      toast.error('Failed to delete highlight')
     }
   })
+
+  const resetForm = () => {
+    resetFormPersistence()
+    setIsCreating(false)
+    setEditingHighlight(null)
+  }
+
+  const handleEdit = (highlight: Highlight) => {
+    setEditingHighlight(highlight)
+    updateFormData({
+      image: highlight.image
+    })
+    setIsCreating(true)
+  }
 
   if (isLoading) {
     return (
@@ -183,6 +212,13 @@ function HighlightForm({
   const [imageUrl, setImageUrl] = useState(highlight?.image || '')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Update form data helper
+  const updateFormData = (field: string, value: string) => {
+    if (field === 'imageUrl') {
+      setImageUrl(value)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!imageUrl.trim()) return
@@ -210,7 +246,7 @@ function HighlightForm({
 
     try {
       const uploadedUrl = await StorageService.uploadImage(file)
-      setImageUrl(uploadedUrl)
+      updateFormData('imageUrl', uploadedUrl)
     } catch (error) {
       console.error('Error uploading image:', error)
       alert('Failed to upload image. Please try again.')
@@ -236,7 +272,7 @@ function HighlightForm({
           <Input
             type="url"
             value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
+            onChange={(e) => updateFormData('imageUrl', e.target.value)}
             placeholder="https://example.com/image.jpg"
             required
           />

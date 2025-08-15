@@ -3,8 +3,10 @@
 import React from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Layout from '@/components/Layout'
+import { VideoPlayer } from '@/components/ui/VideoPlayer'
 import { useGeneralPosts } from '@/hooks/useApi'
 import { Calendar } from 'lucide-react'
+import { isImageUrl, isVideoUrl } from '@/utils/mediaUtils'
 import type { GeneralPost } from '@/lib/supabase'
 
 export default function GeneralPostsPage() {
@@ -80,15 +82,24 @@ function GeneralPostsList() {
           {post.media && post.media.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {post.media.map((mediaUrl, index) => (
-                <img
-                  key={index}
-                  src={mediaUrl}
-                  alt={`Post media ${index + 1}`}
-                  className="w-full h-48 object-cover rounded-lg shadow-sm"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
+                <div key={index} className="w-full">
+                  {isImageUrl(mediaUrl) ? (
+                    <img
+                      src={mediaUrl}
+                      alt={`Post media ${index + 1}`}
+                      className="w-full h-48 object-cover rounded-lg shadow-sm"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <VideoPlayer
+                      url={mediaUrl}
+                      className="w-full h-48 rounded-lg shadow-sm"
+                      showTitle={false}
+                    />
+                  )}
+                </div>
               ))}
             </div>
           )}

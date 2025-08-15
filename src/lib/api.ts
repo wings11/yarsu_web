@@ -152,6 +152,26 @@ class ApiService {
     return this.request('/api/restaurants')
   }
 
+  async createRestaurant(restaurantData: any) {
+    return this.request('/api/restaurants', {
+      method: 'POST',
+      body: JSON.stringify(restaurantData)
+    })
+  }
+
+  async updateRestaurant(restaurantId: number, restaurantData: any) {
+    return this.request(`/api/restaurants/${restaurantId}`, {
+      method: 'PUT',
+      body: JSON.stringify(restaurantData)
+    })
+  }
+
+  async deleteRestaurant(restaurantId: number) {
+    return this.request(`/api/restaurants/${restaurantId}`, {
+      method: 'DELETE'
+    })
+  }
+
   async getHotels() {
     return this.request('/api/hotels')
   }
@@ -284,6 +304,13 @@ class ApiService {
     })
   }
 
+  async updateLink(linkId: number, linkData: any) {
+    return this.request(`/api/links/${linkId}`, {
+      method: 'PUT',
+      body: JSON.stringify(linkData)
+    })
+  }
+
   async deleteLink(linkId: number) {
     return this.request(`/api/links/${linkId}`, {
       method: 'DELETE'
@@ -297,6 +324,13 @@ class ApiService {
   async createHighlight(highlightData: { image: string }) {
     return this.request('/api/highlights', {
       method: 'POST',
+      body: JSON.stringify(highlightData)
+    })
+  }
+
+  async updateHighlight(highlightId: number, highlightData: { image: string }) {
+    return this.request(`/api/highlights/${highlightId}`, {
+      method: 'PUT',
       body: JSON.stringify(highlightData)
     })
   }
@@ -347,6 +381,151 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ job_id: jobId, ...inquiryData })
     })
+  }
+
+  // Analytics endpoints - get real counts from database
+  async getAnalyticsData() {
+    return this.request('/api/analytics')
+  }
+
+  async getRecentActivity() {
+    try {
+      // Get recent posts from different categories to show real activity
+      const [recentJobs, recentHotels, recentRestaurants, recentCourses] = await Promise.all([
+        this.getJobs().then(jobs => jobs?.slice(-2) || []).catch(() => []),
+        this.getHotels().then(hotels => hotels?.slice(-2) || []).catch(() => []),
+        this.getRestaurants().then(restaurants => restaurants?.slice(-2) || []).catch(() => []),
+        this.getCourses().then(courses => courses?.slice(-2) || []).catch(() => [])
+      ])
+
+      const activities: Array<{
+        type: string;
+        message: string;
+        time: string;
+        color: string;
+      }> = []
+
+      // Add recent jobs
+      recentJobs.forEach((job: any) => {
+        activities.push({
+          type: 'post',
+          message: `New job posted: ${job.title || 'Job Posting'}`,
+          time: new Date(job.created_at || Date.now()).toLocaleTimeString(),
+          color: 'blue'
+        })
+      })
+
+      // Add recent hotels
+      recentHotels.forEach((hotel: any) => {
+        activities.push({
+          type: 'update',
+          message: `Hotel listing: ${hotel.name || 'Hotel'}`,
+          time: new Date(hotel.created_at || Date.now()).toLocaleTimeString(),
+          color: 'green'
+        })
+      })
+
+      // Add recent restaurants
+      recentRestaurants.forEach((restaurant: any) => {
+        activities.push({
+          type: 'review',
+          message: `Restaurant added: ${restaurant.name || 'Restaurant'}`,
+          time: new Date(restaurant.created_at || Date.now()).toLocaleTimeString(),
+          color: 'orange'
+        })
+      })
+
+      // Add recent courses
+      recentCourses.forEach((course: any) => {
+        activities.push({
+          type: 'enrollment',
+          message: `Course published: ${course.title || 'Course'}`,
+          time: new Date(course.created_at || Date.now()).toLocaleTimeString(),
+          color: 'purple'
+        })
+      })
+
+      // Sort by creation time and return most recent 5
+      return activities
+        .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+        .slice(0, 5)
+    } catch (error) {
+      console.error('Error fetching recent activity:', error)
+      return []
+    }
+  }
+
+  async getAnalyticsStats() {
+    try {
+      // Use the new backend analytics endpoint for real-time counts
+      const response = await this.request('/api/analytics')
+      
+      if (response.success && response.data) {
+        return response.data
+      } else {
+        throw new Error('Invalid response format')
+      }
+    } catch (error) {
+      console.error('Error fetching analytics stats:', error)
+      
+      // Fallback: Get all data in parallel to calculate real counts if backend analytics fails
+      try {
+        const [
+          restaurants,
+          hotels,
+          jobs,
+          courses,
+          condos,
+          travel,
+          generalPosts,
+          docs,
+          links,
+          highlights,
+          users,
+          chats
+        ] = await Promise.all([
+          this.getRestaurants().catch(() => []),
+          this.getHotels().catch(() => []),
+          this.getJobs().catch(() => []),
+          this.getCourses().catch(() => []),
+          this.getCondos().catch(() => []),
+          this.getTravelPosts().catch(() => []),
+          this.getGeneralPosts().catch(() => []),
+          this.getDocs().catch(() => []),
+          this.getLinks().catch(() => []),
+          this.getHighlights().catch(() => []),
+          this.getUsers().catch(() => []),
+          this.getChats().catch(() => [])
+        ])
+
+        // Calculate real counts as fallback
+        const stats = {
+          totalUsers: users?.length || 0,
+          totalPosts: (jobs?.length || 0) + (restaurants?.length || 0) + (hotels?.length || 0) + 
+                     (courses?.length || 0) + (condos?.length || 0) + (travel?.length || 0) + 
+                     (generalPosts?.length || 0) + (docs?.length || 0) + (links?.length || 0),
+          activeChats: chats?.length || 0,
+          highlights: highlights?.length || 0,
+          categories: {
+            jobs: jobs?.length || 0,
+            restaurants: restaurants?.length || 0,
+            hotels: hotels?.length || 0,
+            courses: courses?.length || 0,
+            condos: condos?.length || 0,
+            travel: travel?.length || 0,
+            general: generalPosts?.length || 0,
+            docs: docs?.length || 0,
+            links: links?.length || 0,
+            highlights: highlights?.length || 0
+          }
+        }
+
+        return stats
+      } catch (fallbackError) {
+        console.error('Fallback analytics also failed:', fallbackError)
+        throw new Error('Unable to fetch analytics data')
+      }
+    }
   }
 }
 

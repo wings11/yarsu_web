@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useGeneralPosts } from '@/hooks/useApi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
 import { apiService } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -18,6 +19,28 @@ export default function GeneralPostManager() {
   const { data: posts, isLoading } = useGeneralPosts()
   const queryClient = useQueryClient()
 
+  // Default form values
+  const defaultFormData = {
+    text: '',
+    media: [] as string[]
+  }
+
+  // Form persistence
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'general-post-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
+  })
+
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (postData: { text: string; media: string[] }) => {
@@ -25,7 +48,7 @@ export default function GeneralPostManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['general-posts'] })
-      setIsCreating(false)
+      resetForm()
     },
     onError: (error: any) => {
       console.error('Create post error:', error)
@@ -40,7 +63,7 @@ export default function GeneralPostManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['general-posts'] })
-      setEditingPost(null)
+      resetForm()
     },
     onError: (error: any) => {
       console.error('Update post error:', error)
@@ -62,6 +85,19 @@ export default function GeneralPostManager() {
     }
   })
 
+  // Reset form
+  const resetForm = () => {
+    setIsCreating(false)
+    setEditingPost(null)
+    resetFormPersistence()
+  }
+
+  // Handle edit
+  const handleEdit = (post: GeneralPost) => {
+    setEditingPost(post)
+    setIsCreating(false)
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -71,15 +107,13 @@ export default function GeneralPostManager() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0">
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900">General Posts</h2>
-          <p className="text-sm md:text-base text-gray-600">Create and manage general posts and announcements</p>
-        </div>
-        <Button onClick={() => setIsCreating(true)} className="flex items-center space-x-2 w-full md:w-auto justify-center">
-          <Plus className="h-4 w-4" />
-          <span>New Post</span>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">General Posts Manager</h2>
+        <Button onClick={() => setIsCreating(true)} disabled={isCreating || !!editingPost}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Post
         </Button>
       </div>
 
@@ -94,67 +128,125 @@ export default function GeneralPostManager() {
               createPostMutation.mutate(postData)
             }
           }}
-          onCancel={() => {
-            setIsCreating(false)
-            setEditingPost(null)
-          }}
-          isLoading={createPostMutation.isPending}
+          onCancel={resetForm}
+          isLoading={createPostMutation.isPending || updatePostMutation.isPending}
+          formData={formData}
+          updateFormData={updateFormData}
         />
       )}
 
-      {/* Posts List */}
+      {/* Posts List - Enhanced Row Layout */}
       <div className="space-y-4">
-        {posts?.map((post: GeneralPost) => (
-          <div key={post.id} className="bg-white border border-gray-200 rounded-lg p-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-4 space-y-2 md:space-y-0">
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <Calendar className="h-4 w-4" />
-                <span>{new Date(post.created_at).toLocaleDateString()}</span>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditingPost(post)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deletePostMutation.mutate(post.id)}
-                  disabled={deletePostMutation.isPending}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="prose prose-gray max-w-none mb-4">
-              <p className="whitespace-pre-wrap text-sm md:text-base">{post.text}</p>
-            </div>
-            
-            {/* Media Display */}
-            {post.media && post.media.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {post.media.map((mediaUrl, index) => (
-                  <MediaDisplay key={index} url={mediaUrl} />
-                ))}
-              </div>
-            )}
+        {!posts || posts.length === 0 ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+            <p className="text-gray-500">No posts found. Create your first post!</p>
           </div>
-        ))}
-      </div>
+        ) : (
+          posts.map((post: GeneralPost) => (
+            <div key={post.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              {/* Header with date and actions */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center text-sm text-gray-500">
+                  <Calendar className="h-4 w-4 mr-1" />
+                  {new Date(post.created_at).toLocaleDateString()}
+                </div>
+                <div className="flex space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    onClick={() => handleEdit(post)}
+                    disabled={isCreating || !!editingPost}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="danger" 
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this post?')) {
+                        deletePostMutation.mutate(post.id)
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
 
-      {(!posts || posts.length === 0) && (
-        <div className="text-center py-8 md:py-12 border-2 border-dashed border-gray-300 rounded-lg">
-          <Plus className="mx-auto h-10 w-10 md:h-12 md:w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No posts yet</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Get started by creating your first post.
-          </p>
-        </div>
-      )}
+              {/* Content */}
+              <div className="space-y-4">
+                {/* Text content */}
+                {post.text && (
+                  <div className="prose max-w-none">
+                    <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{post.text}</p>
+                  </div>
+                )}
+
+                {/* Media content */}
+                {post.media && post.media.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-gray-700 border-b border-gray-200 pb-2">
+                      Media Content ({post.media.length} item{post.media.length !== 1 ? 's' : ''})
+                    </h4>
+                    <div className="grid gap-4">
+                      {post.media.map((mediaUrl: string, index: number) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              {isImageUrl(mediaUrl) ? (
+                                <ImageIcon className="h-5 w-5 text-blue-500" />
+                              ) : isVideoUrl(mediaUrl) ? (
+                                <Video className="h-5 w-5 text-red-500" />
+                              ) : (
+                                <div className="h-5 w-5 bg-gray-400 rounded" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 mb-2">
+                                {isImageUrl(mediaUrl) ? 'Image' : 
+                                 isVideoUrl(mediaUrl) ? 'Video' : 'Link'} #{index + 1}
+                              </div>
+                              
+                              {/* Render media */}
+                              {isImageUrl(mediaUrl) ? (
+                                <div className="relative">
+                                  <img 
+                                    src={mediaUrl} 
+                                    alt={`Media ${index + 1}`}
+                                    className="max-w-full h-auto max-h-64 rounded-lg border border-gray-200 object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none'
+                                    }}
+                                  />
+                                </div>
+                              ) : isVideoUrl(mediaUrl) ? (
+                                <div className="max-w-md">
+                                  <VideoPlayer url={mediaUrl} />
+                                </div>
+                              ) : (
+                                <div className="text-sm text-blue-600 break-all">
+                                  <a 
+                                    href={mediaUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="hover:underline"
+                                  >
+                                    {mediaUrl}
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }
@@ -164,101 +256,47 @@ function PostForm({
   post, 
   onSave, 
   onCancel, 
-  isLoading 
+  isLoading,
+  formData,
+  updateFormData
 }: { 
   post?: GeneralPost | null
   onSave: (data: { text: string; media: string[] }) => void
   onCancel: () => void
   isLoading: boolean
+  formData: any
+  updateFormData: (updates: any) => void
 }) {
-  const [text, setText] = useState(post?.text || '')
-  const [mediaUrls, setMediaUrls] = useState<string[]>(post?.media || [])
   const [newMediaUrl, setNewMediaUrl] = useState('')
-  const [draftRestored, setDraftRestored] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Autosave key for localStorage
-  const AUTOSAVE_KEY = 'yarsu_general_post_draft'
-
-  // Load saved draft on component mount (only for new posts)
+  // Initialize form data when editing
   useEffect(() => {
-    if (!post) { // Only restore for new posts, not when editing
-      try {
-        const savedDraft = localStorage.getItem(AUTOSAVE_KEY)
-        if (savedDraft) {
-          const parsed = JSON.parse(savedDraft)
-          if (parsed.text || (parsed.mediaUrls && parsed.mediaUrls.length > 0)) {
-            setText(parsed.text || '')
-            setMediaUrls(parsed.mediaUrls || [])
-            setDraftRestored(true)
-            console.log('Restored draft from autosave')
-            
-            // Hide the restored message after 5 seconds
-            setTimeout(() => setDraftRestored(false), 5000)
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to restore autosave draft:', error)
-        localStorage.removeItem(AUTOSAVE_KEY)
-      }
+    if (post) {
+      updateFormData({
+        text: post.text || '',
+        media: post.media || []
+      })
     }
-  }, [post])
-
-  // Autosave to localStorage whenever form data changes
-  useEffect(() => {
-    if (!post) { // Only autosave for new posts, not when editing
-      const draftData = {
-        text: text.trim(),
-        mediaUrls,
-        lastSaved: Date.now()
-      }
-      
-      // Only save if there's actual content
-      if (draftData.text || draftData.mediaUrls.length > 0) {
-        try {
-          localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draftData))
-        } catch (error) {
-          console.warn('Failed to autosave draft:', error)
-        }
-      }
-    }
-  }, [text, mediaUrls, post])
-
-  // Clear autosave on successful save or cancel
-  const clearAutosave = () => {
-    try {
-      localStorage.removeItem(AUTOSAVE_KEY)
-      console.log('Cleared autosave draft')
-    } catch (error) {
-      console.warn('Failed to clear autosave:', error)
-    }
-  }
+  }, [post, updateFormData])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!text.trim()) return
+    if (!formData.text?.trim()) return
     
-    onSave({ text: text.trim(), media: mediaUrls })
-    
-    // Clear autosave after successful submission
-    clearAutosave()
-  }
-
-  const handleCancel = () => {
-    // Clear autosave when canceling
-    clearAutosave()
-    onCancel()
+    onSave({ text: formData.text.trim(), media: formData.media || [] })
   }
 
   const addMediaUrl = () => {
-    if (newMediaUrl.trim() && !mediaUrls.includes(newMediaUrl.trim())) {
-      setMediaUrls([...mediaUrls, newMediaUrl.trim()])
+    if (newMediaUrl.trim() && !(formData.media || []).includes(newMediaUrl.trim())) {
+      updateFormData({ media: [...(formData.media || []), newMediaUrl.trim()] })
       setNewMediaUrl('')
     }
   }
 
   const removeMediaUrl = (index: number) => {
-    setMediaUrls(mediaUrls.filter((_, i) => i !== index))
+    const currentMedia = formData.media || []
+    updateFormData({ media: currentMedia.filter((_: string, i: number) => i !== index) })
   }
 
   // Handle file upload for images only
@@ -273,7 +311,7 @@ function PostForm({
 
     try {
       const uploadedUrl = await StorageService.uploadImage(file)
-      setMediaUrls([...mediaUrls, uploadedUrl])
+      updateFormData({ media: [...(formData.media || []), uploadedUrl] })
     } catch (error) {
       console.error('Error uploading image:', error)
       alert('Failed to upload image. Please try again.')
@@ -289,12 +327,6 @@ function PostForm({
         <h3 className="text-lg font-medium">
           {post ? 'Edit Post' : 'Create New Post'}
         </h3>
-        {draftRestored && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-3 py-1 rounded-md text-sm flex items-center space-x-1">
-            <span>✓</span>
-            <span>Draft restored</span>
-          </div>
-        )}
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -303,8 +335,8 @@ function PostForm({
             Post Content
           </label>
           <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            value={formData.text || ''}
+            onChange={(e) => updateFormData({ text: e.target.value })}
             placeholder="Write your post content here..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             rows={4}
@@ -347,10 +379,10 @@ function PostForm({
           </div>
           
           {/* Media Preview */}
-          {mediaUrls.length > 0 && (
+          {(formData.media || []).length > 0 && (
             <div className="space-y-2">
               <p className="text-sm text-gray-600">Media files:</p>
-              {mediaUrls.map((url, index) => (
+              {(formData.media || []).map((url: string, index: number) => (
                 <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-2 rounded border space-y-2 sm:space-y-0">
                   <div className="flex items-center space-x-2 min-w-0">
                     {isVideoUrl(url) ? (
@@ -376,10 +408,10 @@ function PostForm({
         </div>
 
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-          <Button type="submit" disabled={isLoading || !text.trim()} className="w-full sm:w-auto">
+          <Button type="submit" disabled={isLoading || !formData.text?.trim()} className="w-full sm:w-auto">
             {isLoading ? 'Saving...' : post ? 'Update Post' : 'Create Post'}
           </Button>
-          <Button type="button" variant="secondary" onClick={handleCancel} className="w-full sm:w-auto">
+          <Button type="button" variant="secondary" onClick={onCancel} className="w-full sm:w-auto">
             Cancel
           </Button>
         </div>
@@ -389,35 +421,25 @@ function PostForm({
 }
 
 // Media Display Component
-function MediaDisplay({ url }: { url: string }) {
-  if (isVideoUrl(url)) {
-    return (
-      <div className="relative">
-        <VideoPlayer
-          url={url}
-          className="w-full h-32 sm:h-40 md:h-48 rounded-lg"
-          showTitle={false}
-        />
-        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-          Video
-        </div>
-      </div>
-    )
+function MediaDisplay({ media }: { media: string[] }) {
+  if (!media || media.length === 0) {
+    return <span className="text-gray-400">No media</span>
   }
 
   return (
-    <div className="relative">
-      <img
-        src={url}
-        alt="Post media"
-        className="w-full h-32 sm:h-40 md:h-48 object-cover rounded-lg"
-        onError={(e) => {
-          e.currentTarget.style.display = 'none'
-        }}
-      />
-      <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-        Image
-      </div>
+    <div className="flex flex-wrap gap-1">
+      {media.slice(0, 3).map((url, index) => (
+        <div key={index} className="flex items-center space-x-1">
+          {isVideoUrl(url) ? (
+            <Video className="h-4 w-4 text-blue-500" />
+          ) : (
+            <ImageIcon className="h-4 w-4 text-green-500" />
+          )}
+        </div>
+      ))}
+      {media.length > 3 && (
+        <span className="text-xs text-gray-500">+{media.length - 3} more</span>
+      )}
     </div>
   )
 }

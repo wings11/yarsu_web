@@ -84,7 +84,7 @@ export default function PWAInstallPrompt() {
             Install YarSu App
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            ရာစုအပ်ကို Home Page အခုပဲ ရယူလိုက်ပါ။
+            ရာစုအပ်ကို Home Pageမှာ အခုပဲ ရယူလိုက်ပါ။
           </p>
         </div>
       </div>

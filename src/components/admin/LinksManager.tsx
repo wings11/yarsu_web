@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLinks } from '@/hooks/useApi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
+import { apiService } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Calendar, Plus, Edit, Trash2, Link, ExternalLink, X } from 'lucide-react'
@@ -14,36 +16,84 @@ export default function LinksManager() {
   const { data: links, isLoading } = useLinks()
   const queryClient = useQueryClient()
 
+  // Default form values
+  const defaultFormData = {
+    platform: '',
+    url: ''
+  }
+
+  // Form persistence
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'links-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
+  })
+
   // Create link mutation
   const createLinkMutation = useMutation({
     mutationFn: async (linkData: { platform: string; url: string }) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/links`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(linkData)
-      })
-      if (!response.ok) throw new Error('Failed to create link')
-      return response.json()
+      return await apiService.createLink(linkData)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links'] })
-      setIsCreating(false)
+      resetForm()
+    },
+    onError: (error: any) => {
+      console.error('Create link error:', error)
+      alert(`Failed to create link: ${error.message}`)
+    }
+  })
+
+  // Update link mutation
+  const updateLinkMutation = useMutation({
+    mutationFn: async ({ linkId, linkData }: { linkId: number; linkData: { platform: string; url: string } }) => {
+      return await apiService.updateLink(linkId, linkData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['links'] })
+      resetForm()
+    },
+    onError: (error: any) => {
+      console.error('Update link error:', error)
+      alert(`Failed to update link: ${error.message}`)
     }
   })
 
   // Delete link mutation
   const deleteLinkMutation = useMutation({
     mutationFn: async (linkId: number) => {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/links/${linkId}`, {
-        method: 'DELETE'
-      })
-      if (!response.ok) throw new Error('Failed to delete link')
-      return response.json()
+      return await apiService.deleteLink(linkId)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links'] })
+    },
+    onError: (error: any) => {
+      console.error('Delete link error:', error)
+      alert(`Failed to delete link: ${error.message}`)
     }
   })
+
+  // Reset form
+  const resetForm = () => {
+    setIsCreating(false)
+    setEditingLink(null)
+    resetFormPersistence()
+  }
+
+  // Handle edit
+  const handleEdit = (link: LinkItem) => {
+    setEditingLink(link)
+    setIsCreating(false)
+  }
 
   if (isLoading) {
     return (
@@ -75,16 +125,15 @@ export default function LinksManager() {
           link={editingLink}
           onSave={(linkData) => {
             if (editingLink) {
-              // Update logic here
+              updateLinkMutation.mutate({ linkId: editingLink.id, linkData })
             } else {
               createLinkMutation.mutate(linkData)
             }
           }}
-          onCancel={() => {
-            setIsCreating(false)
-            setEditingLink(null)
-          }}
-          isLoading={createLinkMutation.isPending}
+          onCancel={resetForm}
+          isLoading={createLinkMutation.isPending || updateLinkMutation.isPending}
+          formData={formData}
+          updateFormData={updateFormData}
         />
       )}
 
@@ -104,15 +153,21 @@ export default function LinksManager() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setEditingLink(link)}
+                    onClick={() => handleEdit(link)}
+                    disabled={isCreating || !!editingLink}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => deleteLinkMutation.mutate(link.id)}
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this link?')) {
+                        deleteLinkMutation.mutate(link.id)
+                      }
+                    }}
                     disabled={deleteLinkMutation.isPending}
+                    className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -167,31 +222,42 @@ function LinkForm({
   link, 
   onSave, 
   onCancel, 
-  isLoading 
+  isLoading,
+  formData,
+  updateFormData
 }: { 
   link?: LinkItem | null
   onSave: (data: { platform: string; url: string }) => void
   onCancel: () => void
   isLoading: boolean
+  formData: any
+  updateFormData: (updates: any) => void
 }) {
-  const [platform, setPlatform] = useState(link?.platform || '')
-  const [url, setUrl] = useState(link?.url || '')
+  // Initialize form data when editing
+  useEffect(() => {
+    if (link) {
+      updateFormData({
+        platform: link.platform || '',
+        url: link.url || ''
+      })
+    }
+  }, [link, updateFormData])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!platform.trim() || !url.trim()) return
+    if (!formData.platform?.trim() || !formData.url?.trim()) return
     
     // Basic URL validation
     try {
-      new URL(url)
+      new URL(formData.url)
     } catch {
       alert('Please enter a valid URL')
       return
     }
 
     onSave({
-      platform: platform.trim(),
-      url: url.trim()
+      platform: formData.platform.trim(),
+      url: formData.url.trim()
     })
   }
 
@@ -208,8 +274,8 @@ function LinkForm({
           </label>
           <Input
             type="text"
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value)}
+            value={formData.platform || ''}
+            onChange={(e) => updateFormData({ platform: e.target.value })}
             placeholder="Enter platform name..."
             required
           />
@@ -221,33 +287,33 @@ function LinkForm({
           </label>
           <Input
             type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            value={formData.url || ''}
+            onChange={(e) => updateFormData({ url: e.target.value })}
             placeholder="https://example.com"
             required
           />
         </div>
 
         {/* URL Preview */}
-        {url && (
+        {formData.url && (
           <div className="bg-white border border-gray-200 rounded-md p-3">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <ExternalLink className="h-4 w-4" />
               <span>Preview:</span>
               <a 
-                href={url} 
+                href={formData.url} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary-600 hover:text-primary-700 truncate"
               >
-                {url}
+                {formData.url}
               </a>
             </div>
           </div>
         )}
 
         <div className="flex space-x-3">
-          <Button type="submit" disabled={isLoading || !platform.trim() || !url.trim()}>
+          <Button type="submit" disabled={isLoading || !formData.platform?.trim() || !formData.url?.trim()}>
             {isLoading ? 'Saving...' : link ? 'Update Link' : 'Create Link'}
           </Button>
           <Button type="button" variant="secondary" onClick={onCancel}>

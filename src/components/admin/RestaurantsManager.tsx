@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { StorageService } from '@/lib/storage'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
 import { SmartLink } from '@/components/ui/SmartLink'
 import { Trash2, Edit, Plus, MapPin, Star, Utensils } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -22,13 +23,29 @@ interface Restaurant {
 export default function RestaurantsManager() {
   const [isEditing, setIsEditing] = useState(false)
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null)
-  const [formData, setFormData] = useState({
+  
+  const defaultFormData = {
     name: '',
     location: '',
     images: [''],
     popular_picks: [''],
     admin_rating: 5,
     notes: ''
+  }
+
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'restaurants-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
   })
 
   const queryClient = useQueryClient()
@@ -42,12 +59,7 @@ export default function RestaurantsManager() {
 
   // Create restaurant mutation
   const createMutation = useMutation({
-    mutationFn: (restaurantData: typeof formData) => 
-      fetch('https://yarsu-backend.onrender.com/api/restaurants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(restaurantData)
-      }).then(res => res.json()),
+    mutationFn: (restaurantData: typeof formData) => apiService.createRestaurant(restaurantData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['restaurants'] })
       resetForm()
@@ -59,30 +71,9 @@ export default function RestaurantsManager() {
     }
   })
 
-  // Delete restaurant mutation
-  const deleteMutation = useMutation({
-    mutationFn: (restaurantId: number) => 
-      fetch(`https://yarsu-backend.onrender.com/api/restaurants/${restaurantId}`, {
-        method: 'DELETE',
-      }).then(res => res.json()),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['restaurants'] })
-      toast.success('Restaurant deleted successfully!')
-    },
-    onError: (error) => {
-      console.error('Delete restaurant error:', error)
-      toast.error('Failed to delete restaurant')
-    }
-  })
-
   // Update restaurant mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...restaurantData }: { id: number } & typeof formData) => 
-      fetch(`https://yarsu-backend.onrender.com/api/restaurants/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(restaurantData)
-      }).then(res => res.json()),
+    mutationFn: ({ id, ...restaurantData }: { id: number } & typeof formData) => apiService.updateRestaurant(id, restaurantData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['restaurants'] })
       resetForm()
@@ -94,22 +85,28 @@ export default function RestaurantsManager() {
     }
   })
 
+  // Delete restaurant mutation
+  const deleteMutation = useMutation({
+    mutationFn: (restaurantId: number) => apiService.deleteRestaurant(restaurantId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['restaurants'] })
+      toast.success('Restaurant deleted successfully!')
+    },
+    onError: (error) => {
+      console.error('Delete restaurant error:', error)
+      toast.error('Failed to delete restaurant')
+    }
+  })
+
   const resetForm = () => {
-    setFormData({
-      name: '',
-      location: '',
-      images: [''],
-      popular_picks: [''],
-      admin_rating: 5,
-      notes: ''
-    })
+    resetFormPersistence()
     setIsEditing(false)
     setEditingRestaurant(null)
   }
 
   const handleEdit = (restaurant: Restaurant) => {
     setEditingRestaurant(restaurant)
-    setFormData({
+    updateFormData({
       name: restaurant.name,
       location: restaurant.location,
       images: restaurant.images.length > 0 ? restaurant.images : [''],
@@ -148,8 +145,7 @@ export default function RestaurantsManager() {
   }
 
   const addArrayField = (field: 'images' | 'popular_picks') => {
-    setFormData({
-      ...formData,
+    updateFormData({
       [field]: [...formData[field], '']
     })
   }
@@ -157,16 +153,14 @@ export default function RestaurantsManager() {
   const updateArrayField = (field: 'images' | 'popular_picks', index: number, value: string) => {
     const newArray = [...formData[field]]
     newArray[index] = value
-    setFormData({
-      ...formData,
+    updateFormData({
       [field]: newArray
     })
   }
 
   const removeArrayField = (field: 'images' | 'popular_picks', index: number) => {
-    const newArray = formData[field].filter((_, i) => i !== index)
-    setFormData({
-      ...formData,
+    const newArray = formData[field].filter((_, i: number) => i !== index)
+    updateFormData({
       [field]: newArray.length > 0 ? newArray : ['']
     })
   }
@@ -236,7 +230,7 @@ export default function RestaurantsManager() {
                     <input
                       type="text"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => updateFormData({ name: e.target.value })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter restaurant name"
                       required
@@ -250,7 +244,7 @@ export default function RestaurantsManager() {
                     <input
                       type="text"
                       value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      onChange={(e) => updateFormData({ location: e.target.value })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Restaurant location"
                       required
@@ -264,7 +258,7 @@ export default function RestaurantsManager() {
                   </label>
                   <select
                     value={formData.admin_rating}
-                    onChange={(e) => setFormData({ ...formData, admin_rating: parseInt(e.target.value) })}
+                    onChange={(e) => updateFormData({ admin_rating: parseInt(e.target.value) })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {[1, 2, 3, 4, 5].map(rating => (
@@ -376,7 +370,7 @@ export default function RestaurantsManager() {
                   </label>
                   <textarea
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) => updateFormData({ notes: e.target.value })}
                     rows={3}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Additional information about the restaurant"
@@ -408,8 +402,57 @@ export default function RestaurantsManager() {
       {/* Restaurants List */}
       <div className="grid gap-4">
         {restaurants?.map((restaurant: Restaurant) => (
-          <div key={restaurant.id} className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex justify-between items-start">
+          <div key={restaurant.id} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+            {/* Mobile Layout: Stack everything vertically */}
+            <div className="block sm:hidden">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 flex-1 pr-2">{restaurant.name}</h3>
+                <div className="flex items-center space-x-1">
+                  {[...Array(restaurant.admin_rating)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="mb-3">
+                <SmartLink 
+                  text={restaurant.location} 
+                  iconType="location"
+                  className="text-sm text-gray-600"
+                  fallbackText="Location not specified"
+                />
+              </div>
+
+              {restaurant.popular_picks.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-sm text-gray-600">
+                    <strong>Popular Dishes:</strong> {restaurant.popular_picks.join(', ')}
+                  </p>
+                </div>
+              )}
+
+              {restaurant.notes && (
+                <p className="text-gray-600 text-sm mb-3">{restaurant.notes}</p>
+              )}
+              
+              <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => handleEdit(restaurant)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(restaurant.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop/Tablet Layout: Side by side */}
+            <div className="hidden sm:flex justify-between items-start">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
                   <h3 className="text-lg font-semibold text-gray-900">{restaurant.name}</h3>

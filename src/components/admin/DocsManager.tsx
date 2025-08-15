@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useDocs } from '@/hooks/useApi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
@@ -11,6 +11,8 @@ import type { Doc } from '@/lib/supabase'
 import { apiService } from '@/lib/api'
 import { isVideoUrl, isImageUrl, getVideoType } from '@/utils/mediaUtils'
 import { StorageService } from '@/lib/storage'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
+import { DraftNotification } from '@/components/ui/DraftNotification'
 
 export default function DocsManager() {
   const [isCreating, setIsCreating] = useState(false)
@@ -87,82 +89,123 @@ export default function DocsManager() {
         />
       )}
 
-      {/* Documents Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {docs?.map((doc: Doc) => (
-          <div key={doc.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center space-x-2">
-                  <FileText className="h-5 w-5 text-primary-600" />
-                  <span className="text-sm text-gray-500">
-                    {new Date(doc.created_at).toLocaleDateString()}
-                  </span>
+      {/* Documents List - Enhanced Row Layout */}
+      <div className="space-y-4">
+        {!docs || docs.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No documents yet</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Start by creating your first document.
+            </p>
+          </div>
+        ) : (
+          docs.map((doc: Doc) => (
+            <div key={doc.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              {/* Header with date and actions */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center text-sm text-gray-500">
+                  <FileText className="h-4 w-4 mr-1" />
+                  Document - {new Date(doc.created_at).toLocaleDateString()}
                 </div>
-                <div className="flex space-x-1">
+                <div className="flex space-x-2">
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setEditingDoc(doc)}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     size="sm"
-                    onClick={() => deleteDocMutation.mutate(doc.id)}
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this document?')) {
+                        deleteDocMutation.mutate(doc.id)
+                      }
+                    }}
                     disabled={deleteDocMutation.isPending}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              
-              <div className="mb-4">
-                <p className="text-gray-900 text-sm line-clamp-4 whitespace-pre-wrap">
-                  {doc.text}
-                </p>
-              </div>
-              
-              {/* Media Count */}
-              {doc.media && doc.media.length > 0 && (
-                <div className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
-                  <div className="flex items-center space-x-1">
-                     <ImageIcon className="h-4 w-4" />
-                    <span>{doc.media.filter(url => isImageUrl(url)).length}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Video className="h-4 w-4" />
-                    <span>{doc.media.filter(url => isVideoUrl(url)).length}</span>
-                  </div>
-                </div>
-              )}
-              
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="w-full"
-                onClick={() => {
-                  // Open document in modal or navigate to detail view
-                }}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View Document
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
 
-      {(!docs || docs.length === 0) && (
-        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-          <FileText className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No documents yet</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Start by creating your first document.
-          </p>
-        </div>
-      )}
+              {/* Content */}
+              <div className="space-y-4">
+                {/* Text content */}
+                {doc.text && (
+                  <div className="prose max-w-none">
+                    <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{doc.text}</p>
+                  </div>
+                )}
+
+                {/* Media content */}
+                {doc.media && doc.media.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-gray-700 border-b border-gray-200 pb-2">
+                      Media Content ({doc.media.length} item{doc.media.length !== 1 ? 's' : ''})
+                    </h4>
+                    <div className="grid gap-4">
+                      {doc.media.map((mediaUrl, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              {isImageUrl(mediaUrl) ? (
+                                <ImageIcon className="h-5 w-5 text-blue-500" />
+                              ) : isVideoUrl(mediaUrl) ? (
+                                <Video className="h-5 w-5 text-red-500" />
+                              ) : (
+                                <ExternalLink className="h-5 w-5 text-green-500" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 mb-2">
+                                {isImageUrl(mediaUrl) ? 'Image' : 
+                                 isVideoUrl(mediaUrl) ? 'Video' : 'Link'} #{index + 1}
+                              </div>
+                              
+                              {/* Render media */}
+                              {isImageUrl(mediaUrl) ? (
+                                <div className="relative">
+                                  <img 
+                                    src={mediaUrl} 
+                                    alt={`Media ${index + 1}`}
+                                    className="max-w-full h-auto max-h-64 rounded-lg border border-gray-200 object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none'
+                                    }}
+                                  />
+                                </div>
+                              ) : isVideoUrl(mediaUrl) ? (
+                                <div className="max-w-md">
+                                  <VideoPlayer url={mediaUrl} />
+                                </div>
+                              ) : (
+                                <div className="text-sm text-blue-600 break-all">
+                                  <a 
+                                    href={mediaUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="hover:underline flex items-center space-x-1"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                    <span>{mediaUrl}</span>
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }
@@ -179,29 +222,68 @@ function DocForm({
   onCancel: () => void
   isLoading: boolean
 }) {
-  const [text, setText] = useState(doc?.text || '')
-  const [mediaUrls, setMediaUrls] = useState<string[]>(doc?.media || [])
   const [newMediaUrl, setNewMediaUrl] = useState('')
+  const [showDraftNotification, setShowDraftNotification] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const defaultFormData = {
+    text: '',
+    mediaUrls: [] as string[]
+  }
+
+  const {
+    formData,
+    updateFormData,
+    resetForm,
+    clearDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'docs_form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
+  })
+
+  // Check for saved draft on component mount
+  useEffect(() => {
+    if (hasSavedDraft && !doc) {
+      setShowDraftNotification(true)
+    }
+  }, [hasSavedDraft, doc])
+
+  // Load doc data when editing
+  useEffect(() => {
+    if (doc) {
+      updateFormData({
+        text: doc.text,
+        mediaUrls: doc.media || []
+      })
+      setShowDraftNotification(false)
+    }
+  }, [doc, updateFormData])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!text.trim()) return
+    if (!formData.text.trim()) return
     onSave({ 
-      text: text.trim(), 
-      media: mediaUrls 
+      text: formData.text.trim(), 
+      media: formData.mediaUrls 
     })
+    clearDraft() // Clear draft after successful save
   }
 
   const addMediaUrl = () => {
-    if (newMediaUrl.trim() && !mediaUrls.includes(newMediaUrl.trim())) {
-      setMediaUrls([...mediaUrls, newMediaUrl.trim()])
+    if (newMediaUrl.trim() && !formData.mediaUrls.includes(newMediaUrl.trim())) {
+      updateFormData({ mediaUrls: [...formData.mediaUrls, newMediaUrl.trim()] })
       setNewMediaUrl('')
     }
   }
 
   const removeMediaUrl = (index: number) => {
-    setMediaUrls(mediaUrls.filter((_, i) => i !== index))
+    updateFormData({ 
+      mediaUrls: formData.mediaUrls.filter((_, i) => i !== index) 
+    })
   }
 
   // Handle file upload for images only
@@ -216,7 +298,7 @@ function DocForm({
 
     try {
       const uploadedUrl = await StorageService.uploadImage(file)
-      setMediaUrls([...mediaUrls, uploadedUrl])
+      updateFormData({ mediaUrls: [...formData.mediaUrls, uploadedUrl] })
     } catch (error) {
       console.error('Error uploading image:', error)
       alert('Failed to upload image. Please try again.')
@@ -228,9 +310,25 @@ function DocForm({
 
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-      <h3 className="text-lg font-medium mb-4">
-        {doc ? 'Edit Document' : 'Create New Document'}
+      <h3 className="text-lg font-medium mb-4 flex items-center justify-between">
+        <span>{doc ? 'Edit Document' : 'Create New Document'}</span>
+        {hasUnsavedChanges && !doc && (
+          <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-md">
+            Draft saved
+          </span>
+        )}
       </h3>
+      
+      {/* Draft Notification */}
+      <DraftNotification
+        isVisible={showDraftNotification}
+        onRestore={() => setShowDraftNotification(false)}
+        onDiscard={() => {
+          clearDraft()
+          setShowDraftNotification(false)
+        }}
+        formType="document"
+      />
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -238,8 +336,8 @@ function DocForm({
             Document Content
           </label>
           <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            value={formData.text}
+            onChange={(e) => updateFormData({ text: e.target.value })}
             placeholder="Write your document content here..."
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             rows={8}
@@ -284,11 +382,11 @@ function DocForm({
           </div>
           
           {/* Media Preview */}
-          {mediaUrls.length > 0 && (
+          {formData.mediaUrls.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm text-gray-600">Media files:</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {mediaUrls.map((url, index) => (
+                {formData.mediaUrls.map((url: string, index: number) => (
                   <div key={index} className="bg-white p-3 rounded border">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
@@ -338,7 +436,7 @@ function DocForm({
         </div>
 
         <div className="flex space-x-3">
-          <Button type="submit" disabled={isLoading || !text.trim()}>
+          <Button type="submit" disabled={isLoading || !formData.text.trim()}>
             {isLoading ? 'Saving...' : doc ? 'Update Document' : 'Create Document'}
           </Button>
           <Button type="button" variant="secondary" onClick={onCancel}>

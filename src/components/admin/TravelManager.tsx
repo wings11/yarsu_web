@@ -4,6 +4,8 @@ import React, { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { StorageService } from '@/lib/storage'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
 import { Trash2, Edit, Plus, MapPin, Calendar, Plane, DollarSign, Star, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -19,15 +21,32 @@ interface TravelPost {
 }
 
 export default function TravelManager() {
+  const { t } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [editingTravel, setEditingTravel] = useState<TravelPost | null>(null)
-  const [formData, setFormData] = useState({
+  
+  const defaultFormData = {
     name: '',
     place: '',
     highlights: [''],
     images: [''],
     admin_rating: 5,
     notes: ''
+  }
+
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'travel-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
   })
 
   const queryClient = useQueryClient()
@@ -81,21 +100,14 @@ export default function TravelManager() {
   })
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      place: '',
-      highlights: [''],
-      images: [''],
-      admin_rating: 5,
-      notes: ''
-    })
+    resetFormPersistence()
     setIsEditing(false)
     setEditingTravel(null)
   }
 
   const handleEdit = (travel: TravelPost) => {
     setEditingTravel(travel)
-    setFormData({
+    updateFormData({
       name: travel.name,
       place: travel.place,
       highlights: travel.highlights && travel.highlights.length > 0 ? travel.highlights : [''],
@@ -131,8 +143,7 @@ export default function TravelManager() {
   }
 
   const addArrayField = (field: 'highlights' | 'images') => {
-    setFormData({
-      ...formData,
+    updateFormData({
       [field]: [...formData[field], '']
     })
   }
@@ -140,16 +151,15 @@ export default function TravelManager() {
   const updateArrayField = (field: 'highlights' | 'images', index: number, value: string) => {
     const newArray = [...formData[field]]
     newArray[index] = value
-    setFormData({
+    updateFormData({
       ...formData,
       [field]: newArray
     })
   }
 
   const removeArrayField = (field: 'highlights' | 'images', index: number) => {
-    const newArray = formData[field].filter((_, i) => i !== index)
-    setFormData({
-      ...formData,
+    const newArray = formData[field].filter((_, i: number) => i !== index)
+    updateFormData({
       [field]: newArray.length > 0 ? newArray : ['']
     })
   }
@@ -197,7 +207,7 @@ export default function TravelManager() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Travel Posts Management</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('admin.travel.title') || 'Travel Posts Management'}</h2>
         <button
           onClick={() => {
             resetForm()
@@ -234,14 +244,14 @@ export default function TravelManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Travel Name *
+                    {t('travel.name') || 'Travel Name'} *
                   </label>
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => updateFormData({ name: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter travel name"
+                    placeholder={t('travel.namePlaceholder') || 'Enter travel name'}
                     required
                   />
                 </div>
@@ -253,7 +263,7 @@ export default function TravelManager() {
                   <input
                     type="text"
                     value={formData.place}
-                    onChange={(e) => setFormData({ ...formData, place: e.target.value })}
+                    onChange={(e) => updateFormData({ place: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Destination place"
                     required
@@ -270,7 +280,7 @@ export default function TravelManager() {
                   min="1"
                   max="5"
                   value={formData.admin_rating}
-                  onChange={(e) => setFormData({ ...formData, admin_rating: parseInt(e.target.value) || 5 })}
+                  onChange={(e) => updateFormData({ admin_rating: parseInt(e.target.value) || 5 })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -376,7 +386,7 @@ export default function TravelManager() {
                 </label>
                 <textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) => updateFormData({ notes: e.target.value })}
                   rows={3}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Additional notes about the travel post"

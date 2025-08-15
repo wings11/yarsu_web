@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Search, Shield, User, Crown } from 'lucide-react'
+import { Search, Shield, User, Crown, UserPlus, Filter } from 'lucide-react'
+import AdminCardLayout from './AdminCardLayout'
+import EnhancedTable from '@/components/ui/EnhancedTable'
 
 interface UserData {
   id: string
@@ -151,7 +153,7 @@ export default function UserManagement() {
         </div>
         
         {/* Desktop Table View */}
-        <div className="hidden md:block">
+        <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -169,15 +171,15 @@ export default function UserManagement() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
                           <User className="h-5 w-5 text-primary-600" />
                         </div>
                       </div>
-                      <div className="ml-4 min-w-0 flex-1">
-                        <div className="text-sm font-medium text-gray-900 break-all">
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">
                           {user.email}
                         </div>
                         <div className="text-sm text-gray-500">
@@ -186,7 +188,7 @@ export default function UserManagement() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       user.role === 'superadmin' 
                         ? 'bg-purple-100 text-purple-800' 
@@ -200,7 +202,7 @@ export default function UserManagement() {
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     {user.role !== 'superadmin' && (
                       <Button
                         onClick={() => handleRoleChange(user.id, user.role)}

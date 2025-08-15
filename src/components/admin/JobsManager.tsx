@@ -4,8 +4,10 @@ import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { SmartLink } from '@/components/ui/SmartLink'
-import { Trash2, Edit, Plus, MapPin, DollarSign, Users, Calendar } from 'lucide-react'
+import { Trash2, Edit, Plus, MapPin, DollarSign, Users, Calendar, Star } from 'lucide-react'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
 import toast from 'react-hot-toast'
+import EnhancedTable from './EnhancedTable'
 
 interface Job {
   id: number
@@ -23,7 +25,8 @@ interface Job {
 export default function JobsManager() {
   const [isEditing, setIsEditing] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
-  const [formData, setFormData] = useState({
+  
+  const defaultFormData = {
     title: '',
     pinkcard: false,
     thai: false,
@@ -32,6 +35,21 @@ export default function JobsManager() {
     location: '',
     job_location: '',
     notes: ''
+  }
+
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'jobs-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
   })
 
   const queryClient = useQueryClient()
@@ -77,6 +95,7 @@ export default function JobsManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
       resetForm()
+      clearDraft() // Clear the saved draft
       toast.success('Job updated successfully!')
     },
     onError: (error) => {
@@ -86,23 +105,14 @@ export default function JobsManager() {
   })
 
   const resetForm = () => {
-    setFormData({
-      title: '',
-      pinkcard: false,
-      thai: false,
-      payment_type: true, // true = daily
-      stay: false,
-      location: '',
-      job_location: '',
-      notes: ''
-    })
+    resetFormPersistence()
     setIsEditing(false)
     setEditingJob(null)
   }
 
   const handleEdit = (job: Job) => {
     setEditingJob(job)
-    setFormData({
+    updateFormData({
       title: job.title,
       pinkcard: job.pinkcard,
       thai: job.thai,
@@ -186,7 +196,7 @@ export default function JobsManager() {
                   <input
                     type="text"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    onChange={(e) => updateFormData({ title: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter job title"
                     required
@@ -201,7 +211,7 @@ export default function JobsManager() {
                     <input
                       type="text"
                       value={formData.job_location}
-                      onChange={(e) => setFormData({ ...formData, job_location: e.target.value })}
+                      onChange={(e) => updateFormData({ job_location: e.target.value })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Specific work location"
                       required
@@ -214,7 +224,7 @@ export default function JobsManager() {
                     </label>
                     <select
                       value={formData.payment_type ? "daily" : "monthly"}
-                      onChange={(e) => setFormData({ ...formData, payment_type: e.target.value === "daily" })}
+                      onChange={(e) => updateFormData({ payment_type: e.target.value === "daily" })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="daily">Daily</option>
@@ -228,7 +238,7 @@ export default function JobsManager() {
                     <input
                       type="checkbox"
                       checked={formData.pinkcard}
-                      onChange={(e) => setFormData({ ...formData, pinkcard: e.target.checked })}
+                      onChange={(e) => updateFormData({ pinkcard: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">Pink Card Required</span>
@@ -238,7 +248,7 @@ export default function JobsManager() {
                     <input
                       type="checkbox"
                       checked={formData.thai}
-                      onChange={(e) => setFormData({ ...formData, thai: e.target.checked })}
+                      onChange={(e) => updateFormData({ thai: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">Thai Language</span>
@@ -248,7 +258,7 @@ export default function JobsManager() {
                     <input
                       type="checkbox"
                       checked={formData.stay}
-                      onChange={(e) => setFormData({ ...formData, stay: e.target.checked })}
+                      onChange={(e) => updateFormData({ stay: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">Accommodation Provided</span>
@@ -263,7 +273,7 @@ export default function JobsManager() {
                     <input
                       type="text"
                       value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      onChange={(e) => updateFormData({ location: e.target.value })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Where is the accommodation located?"
                       required={formData.stay}
@@ -277,7 +287,7 @@ export default function JobsManager() {
                   </label>
                   <textarea
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) => updateFormData({ notes: e.target.value })}
                     rows={3}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Additional information about the job"
@@ -306,80 +316,117 @@ export default function JobsManager() {
         </div>
       )}
 
-      {/* Jobs List */}
-      <div className="grid gap-4">
-        {jobs?.map((job: Job) => (
-          <div key={job.id} className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{job.title}</h3>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <SmartLink 
-                      text={job.job_location} 
-                      iconType="location"
-                      className="text-sm"
-                      fallbackText="Location not specified"
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="capitalize">{job.payment_type ? 'Daily' : 'Monthly'}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Calendar className="h-4 w-4" />
-                    <span>{new Date(job.created_at).toLocaleDateString()}</span>
-                  </div>
+      {/* Enhanced Jobs Table */}
+      <EnhancedTable
+        data={jobs || []}
+        columns={[
+          {
+            key: 'title',
+            header: 'Job Title',
+            sortable: true,
+            render: (job) => (
+              <div className="min-w-0">
+                <div className="font-medium text-gray-900 break-words">{job.title}</div>
+                <div className="text-sm text-gray-500 flex items-center mt-1 break-words">
+                  <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                  {job.job_location}
                 </div>
-
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {job.pinkcard && (
-                    <span className="px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full">
-                      Pink Card Required
-                    </span>
-                  )}
-                  {job.thai && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                      Thai Language
-                    </span>
-                  )}
-                  {job.stay && (
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                      Accommodation Provided
-                    </span>
-                  )}
-                </div>
-
                 {job.notes && (
-                  <p className="text-gray-600 text-sm">{job.notes}</p>
+                  <div className="text-xs text-gray-400 mt-1 line-clamp-2 break-words">
+                    {job.notes}
+                  </div>
                 )}
               </div>
-
-              <div className="flex space-x-2 ml-4">
+            )
+          },
+          {
+            key: 'payment_type',
+            header: 'Payment',
+            sortable: true,
+            render: (job) => (
+              <div className="flex items-center text-sm whitespace-nowrap">
+                <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                <span className="capitalize">{job.payment_type ? 'Daily' : 'Monthly'}</span>
+              </div>
+            ),
+            desktopOnly: true
+          },
+          {
+            key: 'requirements',
+            header: 'Requirements',
+            render: (job) => (
+              <div className="flex flex-wrap gap-1">
+                {job.pinkcard && (
+                  <span className="px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full whitespace-nowrap">
+                    Pink Card
+                  </span>
+                )}
+                {job.thai && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full whitespace-nowrap">
+                    Thai
+                  </span>
+                )}
+                {job.stay && (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full whitespace-nowrap">
+                    Stay
+                  </span>
+                )}
+              </div>
+            ),
+            desktopOnly: true
+          },
+          {
+            key: 'created_at',
+            header: 'Created',
+            sortable: true,
+            render: (job) => (
+              <div className="flex items-center text-sm text-gray-600 whitespace-nowrap">
+                <Calendar className="h-4 w-4 mr-1" />
+                {new Date(job.created_at).toLocaleDateString()}
+              </div>
+            ),
+            desktopOnly: true
+          },
+          {
+            key: 'actions',
+            header: 'Actions',
+            render: (job) => (
+              <div className="flex space-x-2">
                 <button
-                  onClick={() => handleEdit(job)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleEdit(job)
+                  }}
+                  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                  title="Edit job"
                 >
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(job.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete(job.id)
+                  }}
+                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                  title="Delete job"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-            </div>
-          </div>
-        ))}
-
-        {jobs?.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No jobs found. Create your first job posting!
-          </div>
-        )}
-      </div>
+            )
+          }
+        ]}
+        searchable={true}
+        searchPlaceholder="Search jobs by title or location..."
+        searchFields={['title', 'job_location', 'notes']}
+        itemsPerPage={10}
+        loading={isLoading}
+        emptyMessage="No jobs found. Create your first job posting!"
+        onRowClick={(job) => {
+          // Optional: could open a detail view or expand row
+          console.log('Clicked job:', job.title)
+        }}
+      />
     </div>
   )
 }

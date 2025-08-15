@@ -202,8 +202,8 @@ export default function ChatInterface() {
   if (!isAdmin) {
     return (
       <div className="h-screen flex flex-col bg-white">
-        {/* Header */}
-        <div className="bg-primary-600 text-white p-4 flex items-center justify-between">
+        {/* Main Header - Fixed at top */}
+        <div className="fixed top-0 left-0 right-0 bg-primary-600 text-white p-4 flex items-center justify-between z-50">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => router.push('/')}
@@ -226,8 +226,50 @@ export default function ChatInterface() {
           </div>
         </div>
 
-        {/* Messages - No bottom padding needed for fullscreen */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        {/* Chat Details Header - Fixed below main header */}
+        {selectedChat && (
+          <div className="fixed top-[76px] left-0 right-0 p-4 border-b border-gray-200 bg-gray-50 z-40">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div>
+                  <h3 className="font-semibold text-gray-900">
+                    {selectedChat.user?.email || `unknown-user-${selectedChat.user_id.slice(-8)}@yarsu.app`}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {selectedChat.user?.role ? `${selectedChat.user.role} • Online` : 'Online'}
+                  </p>
+                </div>
+                {/* Real-time status indicator */}
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-gray-500">Live</span>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                {/* Manual refresh button */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    refetchMessages()
+                    refetchChats()
+                  }}
+                  disabled={messagesLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${messagesLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Messages - Scrollable area with proper margins */}
+        <div 
+          className={`overflow-y-auto p-4 space-y-4 custom-scrollbar ${
+            selectedChat ? 'mt-[144px]' : 'mt-[76px]'
+          } mb-[80px]`}
+          style={{ height: 'calc(100vh - 156px)' }}
+        >
           {messagesLoading ? (
             <div className="flex justify-center">
               <LoadingSpinner />
@@ -246,8 +288,8 @@ export default function ChatInterface() {
           )}
         </div>
 
-        {/* Message input - No fixed positioning needed for fullscreen chat */}
-        <div className="p-3 sm:p-4 border-t border-gray-200 bg-white">
+        {/* Message input - Fixed at bottom */}
+        <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 border-t border-gray-200 bg-white z-30">
           <form onSubmit={handleSendMessage}>
             <div className="flex items-center space-x-2 sm:space-x-3">
               {/* File Attachment Button */}

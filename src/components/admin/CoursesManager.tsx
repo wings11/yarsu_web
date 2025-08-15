@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
 import { SmartLink } from '@/components/ui/SmartLink'
 import { Trash2, Edit, Plus, MapPin, DollarSign, GraduationCap, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -21,13 +22,29 @@ interface Course {
 export default function CoursesManager() {
   const [isEditing, setIsEditing] = useState(false)
   const [editingCourse, setEditingCourse] = useState<Course | null>(null)
-  const [formData, setFormData] = useState({
+  
+  const defaultFormData = {
     name: '',
     duration: '',
     price: 0,
     centre_name: '',
     location: '',
     notes: ''
+  }
+
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'courses-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
   })
 
   const queryClient = useQueryClient()
@@ -81,21 +98,14 @@ export default function CoursesManager() {
   })
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      duration: '',
-      price: 0,
-      centre_name: '',
-      location: '',
-      notes: ''
-    })
+    resetFormPersistence()
     setIsEditing(false)
     setEditingCourse(null)
   }
 
   const handleEdit = (course: Course) => {
     setEditingCourse(course)
-    setFormData({
+    updateFormData({
       name: course.name,
       duration: course.duration,
       price: course.price,
@@ -184,7 +194,7 @@ export default function CoursesManager() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => updateFormData({ name: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter course name"
                     required
@@ -198,7 +208,7 @@ export default function CoursesManager() {
                   <input
                     type="text"
                     value={formData.centre_name}
-                    onChange={(e) => setFormData({ ...formData, centre_name: e.target.value })}
+                    onChange={(e) => updateFormData({ centre_name: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Centre name"
                     required
@@ -211,15 +221,15 @@ export default function CoursesManager() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Price (THB)
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Course price"
-                  />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.price === 0 ? '' : formData.price}
+                      onChange={(e) => updateFormData({ price: parseFloat(e.target.value) || 0 })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Course price"
+                    />
                 </div>
 
                 <div>
@@ -229,7 +239,7 @@ export default function CoursesManager() {
                   <input
                     type="text"
                     value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                    onChange={(e) => updateFormData({ duration: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 8 weeks, 3 months"
                   />
@@ -242,7 +252,7 @@ export default function CoursesManager() {
                   <input
                     type="text"
                     value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    onChange={(e) => updateFormData({ location: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Course location"
                   />
@@ -255,7 +265,7 @@ export default function CoursesManager() {
                 </label>
                 <textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) => updateFormData({ notes: e.target.value })}
                   rows={3}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Additional notes about the course"

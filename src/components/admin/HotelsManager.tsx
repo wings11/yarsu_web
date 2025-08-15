@@ -4,6 +4,8 @@ import React, { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { StorageService } from '@/lib/storage'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useFormPersistence } from '@/hooks/useFormPersistence'
 import { Trash2, Edit, Plus, MapPin, Star, Wifi, Coffee, Waves, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -23,9 +25,11 @@ interface Hotel {
 }
 
 export default function HotelsManager() {
+  const { t } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null)
-  const [formData, setFormData] = useState({
+  
+  const defaultFormData = {
     name: '',
     address: '',
     price: 0,
@@ -36,6 +40,21 @@ export default function HotelsManager() {
     images: [''],
     notes: '',
     admin_rating: 5
+  }
+
+  const {
+    formData,
+    updateFormData,
+    resetForm: resetFormPersistence,
+    clearDraft,
+    saveDraft,
+    hasUnsavedChanges,
+    hasSavedDraft
+  } = useFormPersistence({
+    key: 'hotels-form',
+    defaultValues: defaultFormData,
+    autoSave: true,
+    autoSaveDelay: 2000
   })
 
   const queryClient = useQueryClient()
@@ -102,25 +121,14 @@ export default function HotelsManager() {
   })
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      address: '',
-      price: 0,
-      nearby_famous_places: [''],
-      breakfast: false,
-      free_wifi: false,
-      swimming_pool: false,
-      images: [''],
-      notes: '',
-      admin_rating: 5
-    })
+    resetFormPersistence()
     setIsEditing(false)
     setEditingHotel(null)
   }
 
   const handleEdit = (hotel: Hotel) => {
     setEditingHotel(hotel)
-    setFormData({
+    updateFormData({
       name: hotel.name,
       address: hotel.address,
       price: hotel.price,
@@ -163,8 +171,7 @@ export default function HotelsManager() {
   }
 
   const addArrayField = (field: 'nearby_famous_places' | 'images') => {
-    setFormData({
-      ...formData,
+    updateFormData({
       [field]: [...formData[field], '']
     })
   }
@@ -172,16 +179,14 @@ export default function HotelsManager() {
   const updateArrayField = (field: 'nearby_famous_places' | 'images', index: number, value: string) => {
     const newArray = [...formData[field]]
     newArray[index] = value
-    setFormData({
-      ...formData,
+    updateFormData({
       [field]: newArray
     })
   }
 
   const removeArrayField = (field: 'nearby_famous_places' | 'images', index: number) => {
-    const newArray = formData[field].filter((_, i) => i !== index)
-    setFormData({
-      ...formData,
+    const newArray = formData[field].filter((_, i: number) => i !== index)
+    updateFormData({
       [field]: newArray.length > 0 ? newArray : ['']
     })
   }
@@ -223,7 +228,7 @@ export default function HotelsManager() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Hotels Management</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('admin.hotels.title') || 'Hotels Management'}</h2>
         <button
           onClick={() => setIsEditing(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
@@ -251,7 +256,7 @@ export default function HotelsManager() {
                     <input
                       type="text"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => updateFormData({ name: e.target.value })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter hotel name"
                       required
@@ -262,16 +267,16 @@ export default function HotelsManager() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Price per Night (THB) *
                     </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0.00"
-                      required
-                    />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.price === 0 ? '' : formData.price}
+                        onChange={(e) => updateFormData({ price: parseFloat(e.target.value) || 0 })}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0.00"
+                        required
+                      />
                   </div>
                 </div>
 
@@ -282,7 +287,7 @@ export default function HotelsManager() {
                   <input
                     type="text"
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    onChange={(e) => updateFormData({ address: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Hotel address"
                     required
@@ -295,7 +300,7 @@ export default function HotelsManager() {
                   </label>
                   <select
                     value={formData.admin_rating}
-                    onChange={(e) => setFormData({ ...formData, admin_rating: parseInt(e.target.value) })}
+                    onChange={(e) => updateFormData({ admin_rating: parseInt(e.target.value) })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {[1, 2, 3, 4, 5].map(rating => (
@@ -309,7 +314,7 @@ export default function HotelsManager() {
                     <input
                       type="checkbox"
                       checked={formData.breakfast}
-                      onChange={(e) => setFormData({ ...formData, breakfast: e.target.checked })}
+                      onChange={(e) => updateFormData({ breakfast: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">Breakfast Included</span>
@@ -319,7 +324,7 @@ export default function HotelsManager() {
                     <input
                       type="checkbox"
                       checked={formData.free_wifi}
-                      onChange={(e) => setFormData({ ...formData, free_wifi: e.target.checked })}
+                      onChange={(e) => updateFormData({ free_wifi: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">Free WiFi</span>
@@ -329,7 +334,7 @@ export default function HotelsManager() {
                     <input
                       type="checkbox"
                       checked={formData.swimming_pool}
-                      onChange={(e) => setFormData({ ...formData, swimming_pool: e.target.checked })}
+                      onChange={(e) => updateFormData({ swimming_pool: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">Swimming Pool</span>
@@ -439,7 +444,7 @@ export default function HotelsManager() {
                   </label>
                   <textarea
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) => updateFormData({ notes: e.target.value })}
                     rows={3}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Additional information about the hotel"
@@ -471,8 +476,80 @@ export default function HotelsManager() {
       {/* Hotels List */}
       <div className="grid gap-4">
         {hotels?.map((hotel: Hotel) => (
-          <div key={hotel.id} className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex justify-between items-start">
+          <div key={hotel.id} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+            {/* Mobile Layout: Stack everything vertically */}
+            <div className="block sm:hidden">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 flex-1 pr-2">{hotel.name}</h3>
+                <div className="flex items-center space-x-1">
+                  {[...Array(hotel.admin_rating)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <MapPin className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{hotel.address}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <span className="font-semibold text-green-600">₿{hotel.price}</span>
+                  <span>per night</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 mb-3">
+                {hotel.breakfast && (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full flex items-center space-x-1">
+                    <Coffee className="h-3 w-3" />
+                    <span>Breakfast</span>
+                  </span>
+                )}
+                {hotel.free_wifi && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full flex items-center space-x-1">
+                    <Wifi className="h-3 w-3" />
+                    <span>WiFi</span>
+                  </span>
+                )}
+                {hotel.swimming_pool && (
+                  <span className="px-2 py-1 bg-cyan-100 text-cyan-800 text-xs rounded-full flex items-center space-x-1">
+                    <Waves className="h-3 w-3" />
+                    <span>Pool</span>
+                  </span>
+                )}
+              </div>
+
+              {hotel.nearby_famous_places.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-sm text-gray-600">
+                    <strong>Nearby:</strong> {hotel.nearby_famous_places.join(', ')}
+                  </p>
+                </div>
+              )}
+
+              {hotel.notes && (
+                <p className="text-gray-600 text-sm mb-3">{hotel.notes}</p>
+              )}
+              
+              <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => handleEdit(hotel)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(hotel.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop/Tablet Layout: Side by side */}
+            <div className="hidden sm:flex justify-between items-start">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
                   <h3 className="text-lg font-semibold text-gray-900">{hotel.name}</h3>
@@ -483,13 +560,13 @@ export default function HotelsManager() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 gap-2 sm:gap-0 mb-4">
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <MapPin className="h-4 w-4" />
-                    <span>{hotel.address}</span>
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{hotel.address}</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <span className="font-semibold">₿{hotel.price}</span>
+                    <span className="font-semibold text-green-600">₿{hotel.price}</span>
                     <span>per night</span>
                   </div>
                 </div>

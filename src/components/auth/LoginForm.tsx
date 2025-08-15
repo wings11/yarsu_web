@@ -4,9 +4,11 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -14,6 +16,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { signIn } = useAuth()
+  const { t } = useLanguage()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,16 +28,16 @@ export default function LoginForm() {
       await signIn(email, password)
       router.push('/')
     } catch (error: any) {
-      let errorMessage = 'Failed to sign in'
+      let errorMessage = t('failedSignIn')
       
       if (error.message.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.'
+        errorMessage = t('invalidCredentials')
       } else if (error.message.includes('Email not confirmed')) {
-        errorMessage = 'Please check your email and click the confirmation link before signing in.'
+        errorMessage = t('emailNotConfirmed')
       } else if (error.message.includes('Too many requests')) {
-        errorMessage = 'Too many login attempts. Please wait a few minutes and try again.'
+        errorMessage = t('tooManyRequests')
       } else if (error.message.includes('User not found')) {
-        errorMessage = 'No account found with this email address. Please sign up first.'
+        errorMessage = t('userNotFound')
       } else if (error.message) {
         errorMessage = error.message
       }
@@ -46,17 +49,22 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Language Switcher - Top Right */}
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSwitcher size="sm" className="shadow-sm" />
+      </div>
+
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-4">
             <img src="/images/logo.png" alt="Logo" className="h-12 w-auto" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Sign in to your account</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('signInAccount')}</h2>
           <p className="mt-2 text-sm text-gray-600">
-            Don&apos;t have an account?{' '}
+            {t('dontHaveAccount')}{' '}
             <Link href="/signup" className="text-primary-600 hover:text-primary-500">
-              Sign up here
+              {t('signUpHere')}
             </Link>
           </p>
         </div>
@@ -65,21 +73,22 @@ export default function LoginForm() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <Input
-                label="Email address"
+                label={t('email')}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="Enter your email"
+                placeholder={t('email')}
               />
 
               <Input
-                label="Password"
+                label={t('password')}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="Enter your password"
+                placeholder={t('password')}
+                showPasswordToggle={true}
               />
 
               {error && (
@@ -90,10 +99,10 @@ export default function LoginForm() {
                     </svg>
                     <div>
                       <p>{error}</p>
-                      {error.includes('No account found') && (
+                      {(error.includes('No account found') || error === t('userNotFound')) && (
                         <p className="mt-1">
                           <Link href="/signup" className="text-red-800 underline hover:text-red-900">
-                            Create an account
+                            {t('createAccount')}
                           </Link>
                         </p>
                       )}
@@ -104,7 +113,7 @@ export default function LoginForm() {
 
               <div className="text-right">
                 <Link href="/forgot-password" className="text-sm text-primary-600 hover:text-primary-500">
-                  Forgot your password?
+                  {t('forgotPassword')}
                 </Link>
               </div>
 
@@ -113,7 +122,7 @@ export default function LoginForm() {
                 loading={loading}
                 className="w-full"
               >
-                Sign In
+                {t('login')}
               </Button>
             </form>
           </CardContent>
