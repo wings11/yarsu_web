@@ -6,8 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Search, Shield, User, Crown, UserPlus, Filter } from 'lucide-react'
-import AdminCardLayout from './AdminCardLayout'
-import EnhancedTable from '@/components/ui/EnhancedTable'
+import EnhancedTable from './EnhancedTable'
 
 interface UserData {
   id: string

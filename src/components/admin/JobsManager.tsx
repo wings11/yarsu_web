@@ -324,7 +324,7 @@ export default function JobsManager() {
             key: 'title',
             header: 'Job Title',
             sortable: true,
-            render: (job) => (
+            render: (job: Job) => (
               <div className="min-w-0">
                 <div className="font-medium text-gray-900 break-words">{job.title}</div>
                 <div className="text-sm text-gray-500 flex items-center mt-1 break-words">
@@ -343,7 +343,7 @@ export default function JobsManager() {
             key: 'payment_type',
             header: 'Payment',
             sortable: true,
-            render: (job) => (
+            render: (job: Job) => (
               <div className="flex items-center text-sm whitespace-nowrap">
                 <DollarSign className="h-4 w-4 mr-1 text-green-600" />
                 <span className="capitalize">{job.payment_type ? 'Daily' : 'Monthly'}</span>
@@ -354,7 +354,7 @@ export default function JobsManager() {
           {
             key: 'requirements',
             header: 'Requirements',
-            render: (job) => (
+            render: (job: Job) => (
               <div className="flex flex-wrap gap-1">
                 {job.pinkcard && (
                   <span className="px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full whitespace-nowrap">
@@ -379,7 +379,7 @@ export default function JobsManager() {
             key: 'created_at',
             header: 'Created',
             sortable: true,
-            render: (job) => (
+            render: (job: Job) => (
               <div className="flex items-center text-sm text-gray-600 whitespace-nowrap">
                 <Calendar className="h-4 w-4 mr-1" />
                 {new Date(job.created_at).toLocaleDateString()}
@@ -390,7 +390,7 @@ export default function JobsManager() {
           {
             key: 'actions',
             header: 'Actions',
-            render: (job) => (
+            render: (job: Job) => (
               <div className="flex space-x-2">
                 <button
                   onClick={(e) => {

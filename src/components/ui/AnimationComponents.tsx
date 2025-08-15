@@ -4,7 +4,8 @@ import React from 'react'
 import { motion } from 'framer-motion'
 
 // Bouncy button animation
-interface AnimatedButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface AnimatedButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 
+  'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration' | 'onTransitionEnd' | 'onDragStart' | 'onDragEnd' | 'onDrag'> {
   children: React.ReactNode
   variant?: 'primary' | 'secondary' | 'ghost'
   size?: 'sm' | 'md' | 'lg'
@@ -31,6 +32,7 @@ export function AnimatedButton({
     lg: 'px-6 py-3 text-lg'
   }
 
+  // Now props are clean without conflicting event handlers
   return (
     <motion.button
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
