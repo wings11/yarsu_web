@@ -73,6 +73,7 @@ export interface Hotel {
 
 export interface Job {
   id: number
+  job_num?: string
   title: string
   pinkcard: boolean
   thai: boolean

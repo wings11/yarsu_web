@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { SmartLink } from '@/components/ui/SmartLink'
+import { VideoPlayer } from '@/components/ui/VideoPlayer'
 import { Trash2, Edit, Plus, MapPin, DollarSign, Users, Calendar, Star } from 'lucide-react'
 import { useFormPersistence } from '@/hooks/useFormPersistence'
 import toast from 'react-hot-toast'
@@ -11,6 +12,8 @@ import EnhancedTable from './EnhancedTable'
 
 interface Job {
   id: number
+  job_num?: string
+  media?: string[]
   title: string
   pinkcard: boolean
   thai: boolean
@@ -26,7 +29,19 @@ export default function JobsManager() {
   const [isEditing, setIsEditing] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   
-  const defaultFormData = {
+  const defaultFormData: {
+    job_num: string;
+    title: string;
+    pinkcard: boolean;
+    thai: boolean;
+    payment_type: boolean;
+    stay: boolean;
+    location: string;
+    job_location: string;
+    notes: string;
+    media: string[];
+  } = {
+    job_num: '',
     title: '',
     pinkcard: false,
     thai: false,
@@ -34,7 +49,8 @@ export default function JobsManager() {
     stay: false,
     location: '',
     job_location: '',
-    notes: ''
+    notes: '',
+    media: []
   }
 
   const {
@@ -113,6 +129,7 @@ export default function JobsManager() {
   const handleEdit = (job: Job) => {
     setEditingJob(job)
     updateFormData({
+      job_num: job.job_num || '',
       title: job.title,
       pinkcard: job.pinkcard,
       thai: job.thai,
@@ -120,7 +137,8 @@ export default function JobsManager() {
       stay: job.stay,
       location: job.location,
       job_location: job.job_location,
-      notes: job.notes || ''
+      notes: job.notes || '',
+      media: job.media || []
     })
     setIsEditing(true)
   }
@@ -140,14 +158,16 @@ export default function JobsManager() {
 
     // Clean the data before sending
     const cleanData = {
-      title: formData.title.trim(),
-      pinkcard: Boolean(formData.pinkcard),
-      thai: Boolean(formData.thai),
-      payment_type: formData.payment_type,
-      stay: Boolean(formData.stay),
-      location: formData.stay ? formData.location.trim() : '',
-      job_location: formData.job_location.trim(),
-      notes: formData.notes.trim() || ''
+  job_num: formData.job_num?.trim() || '',
+  title: formData.title.trim(),
+  pinkcard: Boolean(formData.pinkcard),
+  thai: Boolean(formData.thai),
+  payment_type: formData.payment_type,
+  stay: Boolean(formData.stay),
+  location: formData.stay ? formData.location.trim() : '',
+  job_location: formData.job_location.trim(),
+  notes: formData.notes.trim() || '',
+  media: Array.isArray(formData.media) ? formData.media : []
     }
 
     if (editingJob) {
@@ -189,18 +209,32 @@ export default function JobsManager() {
               </h3>
               
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    အလုပ်အမည် *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => updateFormData({ title: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter job title"
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      အလုပ်နံပါတ် (Job Number)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.job_num}
+                      onChange={(e) => updateFormData({ job_num: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Job Number (optional)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      အလုပ်အမည် *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => updateFormData({ title: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter job title"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -294,6 +328,70 @@ export default function JobsManager() {
                   />
                 </div>
 
+                {/* Media input section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Media (images/videos/links)</label>
+                  <div className="space-y-2">
+                    {/* URL input for media */}
+                    {formData.media.map((url: string, index: number) => (
+                      <div key={index} className="flex items-center space-x-2 mb-2">
+                        <input
+                          type="text"
+                          value={url}
+                          onChange={e => {
+                            const newMedia = [...formData.media]
+                            newMedia[index] = e.target.value
+                            updateFormData({ media: newMedia })
+                          }}
+                          className="flex-1 p-2 border border-gray-300 rounded"
+                          placeholder="Paste image/video/link URL"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMedia = formData.media.filter((_, i) => i !== index)
+                            updateFormData({ media: newMedia })
+                          }}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => updateFormData({ media: [...formData.media, ''] })}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      + Add Media
+                    </button>
+                  </div>
+                  {/* File upload for images/videos */}
+                  <div className="mt-2">
+                    <label className="block text-sm text-gray-600 mb-2">Or upload image/video file:</label>
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        let fileType: 'image' | 'video' = 'image';
+                        if (file.type.startsWith('video/')) fileType = 'video';
+                        try {
+                          // @ts-ignore
+                          const { StorageService } = await import('../../lib/storage');
+                          const uploadedUrl = await StorageService.uploadFile(file, 'images', undefined, fileType);
+                          updateFormData({ media: [...formData.media, uploadedUrl] });
+                        } catch (error) {
+                          alert('Failed to upload file. Please try again.');
+                        }
+                        e.target.value = '';
+                      }}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Note: File upload supports images and videos. For YouTube/Vimeo, use the URL field above.</p>
+                  </div>
+                </div>
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
@@ -326,7 +424,10 @@ export default function JobsManager() {
             sortable: true,
             render: (job: Job) => (
               <div className="min-w-0">
-                <div className="font-medium text-gray-900 break-words">{job.title}</div>
+                <div className="font-medium text-gray-900 break-words">
+                  {job.job_num ? <span className="text-blue-600 mr-2">[{job.job_num}]</span> : null}
+                  {job.title}
+                </div>
                 <div className="text-sm text-gray-500 flex items-center mt-1 break-words">
                   <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
                   {job.job_location}
@@ -334,6 +435,20 @@ export default function JobsManager() {
                 {job.notes && (
                   <div className="text-xs text-gray-400 mt-1 line-clamp-2 break-words">
                     {job.notes}
+                  </div>
+                )}
+                {/* Media preview */}
+                {job.media && job.media.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {job.media.map((url, idx) => (
+                      <div key={idx} className="flex flex-col items-center">
+                        {url && url.match(/(youtube\.com|youtu\.be|vimeo\.com|\.mp4|\.webm|\.ogg|\.mov|\.avi)/i) ? (
+                          <VideoPlayer url={url} className="w-32 h-20" isPreview={true} showTitle={false} />
+                        ) : url && url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (
+                          <img src={url} alt="Media" className="w-20 h-20 object-cover rounded border" />
+                        ) : null}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

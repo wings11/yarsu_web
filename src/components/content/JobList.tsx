@@ -163,11 +163,19 @@ function JobCard({ job }: { job: Job }) {
     }
   }
 
+  // ...existing code...
+  // Import mediaUtils and VideoPlayer
+  // @ts-ignore
+  const { isImageUrl, getVideoType } = require('@/utils/mediaUtils');
+  // @ts-ignore
+  const { VideoPlayer } = require('@/components/ui/VideoPlayer');
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <h3 className="text-xl font-semibold text-gray-900 flex-1 pr-2">
+            {job.job_num ? <span className="text-blue-600 mr-2">[{job.job_num}]</span> : null}
             {job.title}
           </h3>
           <Briefcase className="h-5 w-5 text-gray-500 flex-shrink-0" />
@@ -194,6 +202,29 @@ function JobCard({ job }: { job: Job }) {
               className="text-sm"
               showIcon={false}
             />
+          </div>
+        )}
+
+        {/* Media Section */}
+        {Array.isArray(job.media) && job.media.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Media:</h4>
+            <div className="flex flex-wrap gap-3">
+              {job.media.map((url: string, idx: number) => {
+                const videoType = getVideoType(url);
+                return (
+                  <div key={idx} className="w-full md:w-1/2 lg:w-1/3">
+                    {isImageUrl(url) ? (
+                      <img src={url} alt="Job Media" className="w-full h-40 object-cover rounded border mb-2" />
+                    ) : videoType ? (
+                      <VideoPlayer url={url} className="w-full h-40 mb-2" showTitle={false} />
+                    ) : (
+                      <SmartLink text={url} className="text-blue-600 underline break-all" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
