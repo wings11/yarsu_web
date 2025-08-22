@@ -205,28 +205,6 @@ function JobCard({ job }: { job: Job }) {
           </div>
         )}
 
-        {/* Media Section */}
-        {Array.isArray(job.media) && job.media.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Media:</h4>
-            <div className="flex flex-wrap gap-3">
-              {job.media.map((url: string, idx: number) => {
-                const videoType = getVideoType(url);
-                return (
-                  <div key={idx} className="w-full md:w-1/2 lg:w-1/3">
-                    {isImageUrl(url) ? (
-                      <img src={url} alt="Job Media" className="w-full h-40 object-cover rounded border mb-2" />
-                    ) : videoType ? (
-                      <VideoPlayer url={url} className="w-full h-40 mb-2" showTitle={false} />
-                    ) : (
-                      <SmartLink text={url} className="text-blue-600 underline break-all" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* All Features */}
         <div className="mb-4">
@@ -260,6 +238,30 @@ function JobCard({ job }: { job: Job }) {
               maxLines={3}
               className="text-sm text-gray-600"
             />
+          </div>
+        )}
+
+
+        {/* Media Section */}
+        {Array.isArray(job.media) && job.media.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">ပုံ/Videoများ :</h4>
+            <div className="flex flex-wrap gap-3">
+              {job.media.map((url: string, idx: number) => {
+                const videoType = getVideoType(url);
+                return (
+                  <div key={idx} className="w-full md:w-1/2 lg:w-1/3">
+                    {isImageUrl(url) ? (
+                      <img src={url} alt="Job Media" className="w-full h-40 object-cover rounded border mb-2" />
+                    ) : videoType ? (
+                      <VideoPlayer url={url} className="w-full h-40 mb-2" showTitle={false} />
+                    ) : (
+                      <SmartLink text={url} className="text-blue-600 underline break-all" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </CardContent>
