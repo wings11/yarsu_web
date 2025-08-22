@@ -83,6 +83,7 @@ export interface Job {
   job_location: string
   notes?: string
   created_at: string
+  media?: string[]
 }
 
 export interface Course {
