@@ -310,13 +310,13 @@ function PostForm({
     }
 
     try {
+      // Upload to Supabase bucket and get public URL
       const uploadedUrl = await StorageService.uploadImage(file)
       updateFormData({ media: [...(formData.media || []), uploadedUrl] })
     } catch (error) {
       console.error('Error uploading image:', error)
       alert('Failed to upload image. Please try again.')
     }
-    
     // Clear the file input
     if (fileInputRef.current) fileInputRef.current.value = ''
   }

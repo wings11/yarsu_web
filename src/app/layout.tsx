@@ -75,7 +75,7 @@ export default function RootLayout({
 
         <title>YarSu - Community Platform</title>
       </head>
-      <body>
+      <body className="no-select">
         <ErrorBoundary>
           <BrowserOptimization />
           <QueryClientProvider client={queryClient}>

@@ -169,7 +169,7 @@ export default function JobsManager() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Jobs Management</h2>
+        <h2 className="text-2xl font-bold text-gray-900">အလုပ်အကိုင် စီမံခန့်ခွဲရန်</h2>
         <button
           onClick={() => setIsEditing(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
@@ -185,13 +185,13 @@ export default function JobsManager() {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-4">
-                {editingJob ? 'Edit Job' : 'Create New Job'}
+                {editingJob ? 'ပြင်ပါ' : 'အလုပ်အကိုင်အသစ်ထည့်မယ်'}
               </h3>
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Job Title *
+                    အလုပ်အမည် *
                   </label>
                   <input
                     type="text"
@@ -206,7 +206,7 @@ export default function JobsManager() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Job Location *
+                     အလုပ်နေရာ *
                     </label>
                     <input
                       type="text"
@@ -227,8 +227,8 @@ export default function JobsManager() {
                       onChange={(e) => updateFormData({ payment_type: e.target.value === "daily" })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value="daily">Daily</option>
-                      <option value="monthly">Monthly</option>
+                      <option value="daily">နေ့ပြတ်</option>
+                      <option value="monthly">လစဉ်</option>
                     </select>
                   </div>
                 </div>
@@ -241,7 +241,7 @@ export default function JobsManager() {
                       onChange={(e) => updateFormData({ pinkcard: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">Pink Card Required</span>
+                    <span className="text-sm font-medium text-gray-700">အထောက်အထား</span>
                   </label>
 
                   <label className="flex items-center space-x-2">
@@ -251,7 +251,7 @@ export default function JobsManager() {
                       onChange={(e) => updateFormData({ thai: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">Thai Language</span>
+                    <span className="text-sm font-medium text-gray-700">ထိုင်းစကားတတ်ရန်လိုသည်</span>
                   </label>
 
                   <label className="flex items-center space-x-2">
@@ -261,21 +261,21 @@ export default function JobsManager() {
                       onChange={(e) => updateFormData({ stay: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm font-medium text-gray-700">Accommodation Provided</span>
+                    <span className="text-sm font-medium text-gray-700">နေစရာ ပေးသည်</span>
                   </label>
                 </div>
 
                 {formData.stay && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Accommodation Location *
+                      နေစရာ နေရာ *
                     </label>
                     <input
                       type="text"
                       value={formData.location}
                       onChange={(e) => updateFormData({ location: e.target.value })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Where is the accommodation located?"
+                      placeholder="နေစရာနေရန်ပေးပါက ဖြည့်ပါ"
                       required={formData.stay}
                     />
                   </div>
@@ -283,7 +283,7 @@ export default function JobsManager() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
+                    မှတ်ချက်
                   </label>
                   <textarea
                     value={formData.notes}
@@ -300,7 +300,7 @@ export default function JobsManager() {
                     onClick={resetForm}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                   >
-                    Cancel
+                    မလုပ်တော့ပါ
                   </button>
                   <button
                     type="submit"

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -68,6 +68,12 @@ export default function Layout({ children }: LayoutProps) {
   ]
   
   const allNavigation = isAdmin ? [...navigation, ...adminNavigation] : navigation
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener('contextmenu', handler);
+    return () => document.removeEventListener('contextmenu', handler);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
