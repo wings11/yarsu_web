@@ -78,6 +78,13 @@ export interface Job {
   pinkcard: boolean
   thai: boolean
   payment_type: boolean
+  // New fields added in backend; keep optional
+  job_date?: string
+  payment?: string | null
+  pay_amount?: string | number | null
+  accept_amount?: string | number | null
+  treat?: boolean
+  accept?: string | null
   stay: boolean
   location?: string
   job_location: string

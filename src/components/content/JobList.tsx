@@ -10,7 +10,7 @@ import ExpandableText from '@/components/ui/ExpandableText'
 import { SmartLink } from '@/components/ui/SmartLink'
 import CardStack from '@/components/ui/animations/CardStack'
 import { FadeInUp, StaggeredList, StaggeredItem, AnimatedButton } from '@/components/ui/animations/MicroAnimations'
-import { MapPin, CreditCard, Globe, Home, Briefcase, RefreshCw, LayoutGrid, Layers, ChevronLeft, ChevronRight, Hand, ArrowLeft, ArrowRight } from 'lucide-react'
+import { MapPin, CreditCard, Globe, Home, Briefcase, Calendar, RefreshCw, LayoutGrid, Layers, ChevronLeft, ChevronRight, Hand, ArrowLeft, ArrowRight, Users, Coffee } from 'lucide-react'
 import type { Job } from '@/lib/supabase'
 
 export default function JobList() {
@@ -163,6 +163,7 @@ function JobCard({ job }: { job: Job }) {
     }
   }
 
+
   // ...existing code...
   // Import mediaUtils and VideoPlayer
   // @ts-ignore
@@ -174,10 +175,18 @@ function JobCard({ job }: { job: Job }) {
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="text-xl font-semibold text-gray-900 flex-1 pr-2">
-            {job.job_num ? <span className="text-blue-600 mr-2">[{job.job_num}]</span> : null}
-            {job.title}
-          </h3>
+          <div className="flex-1 pr-2">
+            {job.job_date && (
+              <div className="text-sm text-gray-500 mb-1 flex items-center">
+                <Calendar className="h-4 w-4 mr-1" />
+                <span>{new Date(job.job_date).toLocaleDateString()}</span>
+              </div>
+            )}
+            <h3 className="text-xl font-semibold text-gray-900">
+              {job.job_num ? <span className="text-blue-600 mr-2">[{job.job_num}]</span> : null}
+              {job.title}
+            </h3>
+          </div>
           <Briefcase className="h-5 w-5 text-gray-500 flex-shrink-0" />
         </div>
 
@@ -189,6 +198,22 @@ function JobCard({ job }: { job: Job }) {
             className="text-sm"
             fallbackText="Location not specified"
           />
+        </div>
+
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center text-gray-600 space-x-3 text-sm">
+            {job.pay_amount != null && (
+              <div className="flex items-center">
+                <CreditCard className="h-4 w-4 mr-1" />
+                <span>{job.pay_amount} ฿</span>
+              </div>
+            )}
+          </div>
+          {job.accept_amount != null && (
+            <div className="text-sm text-gray-600">
+              <strong>{t('acceptedLabel')}:</strong> {job.accept_amount}
+            </div>
+          )}
         </div>
 
         {/* Accommodation Location - Show only if stay is true and location exists */}
@@ -211,21 +236,36 @@ function JobCard({ job }: { job: Job }) {
           <h4 className="text-sm font-medium text-gray-900 mb-2">Key Features:</h4>
           <div className="flex flex-wrap gap-2">
             {features.map(({ key, icon: Icon, label, color }) => {
-              if (key === 'payment_type' && job[key as keyof Job]) {
+              if (key === 'payment_type') {
                 return (
                   <div key={key} className={`flex items-center text-xs px-2 py-1 rounded-full ${getFeatureColor(color)}`}>
                     <Icon className="h-3 w-3 mr-1" />
-                    {job.payment_type ? t('daily') : t('monthly')}
+                    <span className="capitalize">{job.payment ?? '-'}</span>
                   </div>
                 )
               }
-              return job[key as keyof Job] && (
-                <div key={key} className={`flex items-center text-xs px-2 py-1 rounded-full ${getFeatureColor(color)}`}>
-                  <Icon className="h-3 w-3 mr-1" />
-                  {label}
-                </div>
-              )
+              if (key === 'pinkcard' || key === 'thai' || key === 'stay') {
+                return job[key as keyof Job] && (
+                  <div key={key} className={`flex items-center text-xs px-2 py-1 rounded-full ${getFeatureColor(color)}`}>
+                    <Icon className="h-3 w-3 mr-1" />
+                    {label}
+                  </div>
+                )
+              }
+              return null
             })}
+            {/* Treat feature shown separately with meal icon */}
+            <div className={`flex items-center text-xs px-2 py-1 rounded-full ${getFeatureColor('green')}`}>
+              <Coffee className="h-3 w-3 mr-1 text-yellow-600" />
+              <span>{job.treat ? t('treatYes') : t('treatNo')}</span>
+            </div>
+            {/* Accept text shown if present */}
+            {job.accept && (
+              <div className={`flex items-center text-xs px-2 py-1 rounded-full ${getFeatureColor('gray')}`}>
+                <ArrowRight className="h-3 w-3 mr-1" />
+                <span className="capitalize">{job.accept}</span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api'
 import { SmartLink } from '@/components/ui/SmartLink'
 import { VideoPlayer } from '@/components/ui/VideoPlayer'
-import { Trash2, Edit, Plus, MapPin, DollarSign, Users, Calendar, Star } from 'lucide-react'
+import { Trash2, Edit, Plus, MapPin, DollarSign, Users, Calendar, Star, Coffee } from 'lucide-react'
 import { useFormPersistence } from '@/hooks/useFormPersistence'
 import toast from 'react-hot-toast'
 import EnhancedTable from './EnhancedTable'
@@ -18,6 +19,13 @@ interface Job {
   pinkcard: boolean
   thai: boolean
   payment_type: boolean // true = daily, false = monthly
+  // new fields
+  job_date?: string
+  payment?: string | null
+  pay_amount?: string | number | null
+  accept_amount?: string | number | null
+  treat?: boolean
+  accept?: string | null
   stay: boolean
   location: string
   job_location: string
@@ -26,6 +34,7 @@ interface Job {
 }
 
 export default function JobsManager() {
+  const { t } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   
@@ -35,6 +44,12 @@ export default function JobsManager() {
     pinkcard: boolean;
     thai: boolean;
     payment_type: boolean;
+  job_date: string;
+  payment: string | null;
+  pay_amount: string | number | null;
+  accept_amount: string | number | null;
+  treat: boolean;
+  accept: string;
     stay: boolean;
     location: string;
     job_location: string;
@@ -46,6 +61,12 @@ export default function JobsManager() {
     pinkcard: false,
     thai: false,
     payment_type: true, // true = daily, false = monthly
+  job_date: '',
+  payment: null,
+  pay_amount: '',
+  accept_amount: '',
+  treat: false,
+  accept: '',
     stay: false,
     location: '',
     job_location: '',
@@ -134,6 +155,12 @@ export default function JobsManager() {
       pinkcard: job.pinkcard,
       thai: job.thai,
       payment_type: job.payment_type,
+  job_date: job.job_date || '',
+  payment: job.payment ?? null,
+  pay_amount: job.pay_amount ?? '',
+  accept_amount: job.accept_amount ?? '',
+  treat: Boolean(job.treat),
+  accept: job.accept ?? '',
       stay: job.stay,
       location: job.location,
       job_location: job.job_location,
@@ -163,6 +190,14 @@ export default function JobsManager() {
   pinkcard: Boolean(formData.pinkcard),
   thai: Boolean(formData.thai),
   payment_type: formData.payment_type,
+  // new fields: explicitly include job_date, pay/accept amounts, treat and accept
+  job_date: formData.job_date ? String(formData.job_date).trim() : '',
+  // backend column `payment` kept null from frontend per request
+    payment: formData.payment ? String(formData.payment).trim() : null,
+  pay_amount: formData.pay_amount ? String(formData.pay_amount).trim() : null,
+  accept_amount: formData.accept_amount ? Number(formData.accept_amount) : null,
+  treat: Boolean(formData.treat),
+  accept: formData.accept?.trim() || '',
   stay: Boolean(formData.stay),
   location: formData.stay ? formData.location.trim() : '',
   job_location: formData.job_location.trim(),
@@ -209,11 +244,19 @@ export default function JobsManager() {
               </h3>
               
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                {/* Top row: Date, Job Number, Title */}
+                <div className="grid grid-cols-3 gap-4 items-end">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      အလုပ်နံပါတ် (Job Number)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('jobDateLabel')}</label>
+                    <input
+                      type="date"
+                      value={formData.job_date}
+                      onChange={(e) => updateFormData({ job_date: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Job Number</label>
                     <input
                       type="text"
                       value={formData.job_num}
@@ -223,9 +266,7 @@ export default function JobsManager() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      အလုပ်အမည် *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">အလုပ်အမည် *</label>
                     <input
                       type="text"
                       value={formData.title}
@@ -239,9 +280,7 @@ export default function JobsManager() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                     အလုပ်နေရာ *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">အလုပ်နေရာ *</label>
                     <input
                       type="text"
                       value={formData.job_location}
@@ -253,21 +292,60 @@ export default function JobsManager() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Payment Type
-                    </label>
-                    <select
-                      value={formData.payment_type ? "daily" : "monthly"}
-                      onChange={(e) => updateFormData({ payment_type: e.target.value === "daily" })}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('paymentLabel')}</label>
+                    <input
+                      type="text"
+                      value={formData.payment ?? ''}
+                      onChange={(e) => updateFormData({ payment: e.target.value })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="daily">နေ့ပြတ်</option>
-                      <option value="monthly">လစဉ်</option>
-                    </select>
+                      placeholder="ပုတ်ပြတ် ၊ လစဉ် ၊ ..."
+                    />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-4 mt-2 items-end">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pay Amount (Baht)</label>
+                    <div className="flex">
+                      <input
+                        type="number"
+                        value={formData.pay_amount as any}
+                        onChange={(e) => updateFormData({ pay_amount: e.target.value })}
+                        className="w-full p-3 border border-gray-300 rounded-l-lg rounded-r-none"
+                        placeholder="0"
+                        min={0}
+                      />
+                      <span className="inline-flex items-center px-3 border border-l-0 border-gray-300 rounded-r-lg bg-gray-50">฿</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    {/* accept amount: use placeholder instead of label to keep row compact */}
+                    <label className="block text-sm font-medium text-gray-700 mb-2 opacity-0">&nbsp;</label>
+                    <input
+                      type="number"
+                      value={formData.accept_amount as any}
+                      onChange={(e) => updateFormData({ accept_amount: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="အလုပ်သမားဦးရေ"
+                      min={0}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
+                    <input
+                      type="text"
+                      value={formData.accept}
+                      onChange={(e) => updateFormData({ accept: e.target.value })}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 transition-all placeholder-gray-400"
+                      placeholder={t('လင်မယားတွဲလက်ခံသည်')}
+                    />
+                  </div>
+                </div>
+
+                {/* Requirements and checkboxes - move Treat to bottom */}
+        <div className="grid grid-cols-3 gap-4 mt-3">
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -284,6 +362,7 @@ export default function JobsManager() {
                       checked={formData.thai}
                       onChange={(e) => updateFormData({ thai: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          title="Require Thai language"
                     />
                     <span className="text-sm font-medium text-gray-700">ထိုင်းစကားတတ်ရန်လိုသည်</span>
                   </label>
@@ -294,8 +373,23 @@ export default function JobsManager() {
                       checked={formData.stay}
                       onChange={(e) => updateFormData({ stay: e.target.checked })}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          title="Accommodation provided"
                     />
                     <span className="text-sm font-medium text-gray-700">နေစရာ ပေးသည်</span>
+                  </label>
+                </div>
+
+
+
+                <div className="mt-3">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.treat}
+                      onChange={(e) => updateFormData({ treat: e.target.checked })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">{t('treatYes')}</span>
                   </label>
                 </div>
 
@@ -462,6 +556,59 @@ export default function JobsManager() {
               <div className="flex items-center text-sm whitespace-nowrap">
                 <DollarSign className="h-4 w-4 mr-1 text-green-600" />
                 <span className="capitalize">{job.payment_type ? 'Daily' : 'Monthly'}</span>
+              </div>
+            ),
+            desktopOnly: true
+          },
+          {
+            key: 'job_date',
+            header: 'Job Date',
+            render: (job: Job) => (
+              <div className="text-sm text-gray-700 whitespace-nowrap">
+                {job.job_date ? new Date(job.job_date).toLocaleDateString() : '-'}
+              </div>
+            ),
+            desktopOnly: true
+          },
+          {
+            key: 'pay_amount',
+            header: 'Pay',
+            render: (job: Job) => (
+              <div className="text-sm text-gray-700 whitespace-nowrap">
+                {job.pay_amount ? `${job.pay_amount} ฿` : '-'}
+              </div>
+            ),
+            desktopOnly: true
+          },
+          {
+            key: 'accept_amount',
+            header: 'Accepted',
+            render: (job: Job) => (
+              <div className="text-sm text-gray-700 whitespace-nowrap">
+                {job.accept_amount != null ? job.accept_amount : '-'}
+              </div>
+            ),
+            desktopOnly: true
+          },
+          {
+            key: 'treat',
+            header: 'Treat',
+            render: (job: Job) => (
+              <div className="text-sm text-gray-700 whitespace-nowrap">
+                <div className="flex items-center space-x-2">
+                  <Coffee className="h-4 w-4 text-yellow-600" />
+                  <span>{job.treat ? t('treatYes') : t('treatNo')}</span>
+                </div>
+              </div>
+            ),
+            desktopOnly: true
+          },
+          {
+            key: 'accept',
+            header: 'Accept',
+            render: (job: Job) => (
+              <div className="text-sm text-gray-700 whitespace-nowrap">
+                {job.accept ?? '-'}
               </div>
             ),
             desktopOnly: true

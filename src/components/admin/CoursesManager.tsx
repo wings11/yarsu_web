@@ -133,6 +133,9 @@ export default function CoursesManager() {
       notes: formData.notes.trim()
     }
 
+    // Log cleaned payload for debugging API 400 issues
+    console.log('CoursesManager: creating/updating course with payload:', cleanedData)
+
     if (editingCourse) {
       updateMutation.mutate({ id: editingCourse.id, ...cleanedData })
     } else {
@@ -225,10 +228,10 @@ export default function CoursesManager() {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={formData.price === 0 ? '' : formData.price}
-                      onChange={(e) => updateFormData({ price: parseFloat(e.target.value) || 0 })}
+                      value={String(formData.price)}
+                      onChange={(e) => updateFormData({ price: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Course price"
+                      placeholder="Set Course Price"
                     />
                 </div>
 

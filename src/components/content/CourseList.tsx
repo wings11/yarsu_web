@@ -114,7 +114,7 @@ function CourseCard({ course }: { course: Course }) {
 
         <div className="mb-3">
           <div className="text-lg font-bold text-primary-600">
-            {formatCurrency(course.price)}
+            {course.price === 0 ? 'Free' : formatCurrency(course.price)}
           </div>
           <div className="text-sm text-gray-600">
             {course.centre_name}

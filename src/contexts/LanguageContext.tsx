@@ -159,9 +159,15 @@ const translations = {
     networkIssues: 'Network connectivity issues',
     serverMaintenance: 'Server maintenance',
     tryAgain: 'Try Again',
-    pinkCard: 'Pink Card',
+    pinkCard: 'Document',
     thaiLanguage: 'Thai Language',
     paymentAvailable: 'Payment Available',
+  acceptPlaceholder: 'Enter accept text (shown to users)',
+  treatYes: 'Treat',
+  treatNo: 'No Treat',
+  acceptedLabel: 'Accepted',
+  jobDateLabel: 'Job Date',
+  paymentLabel: 'Payment',
 
     //Docs Page
     title: 'Documents',
@@ -321,9 +327,15 @@ const translations = {
     networkIssues: 'ကွန်ယက် ချိတ်ဆက်မှု ပြဿနာများဖြစ်နေပါသည်',
     serverMaintenance: 'ဆာဗာ ပြုပြင်ထိန်းသိမ်းနေပါသည်',
     tryAgain: 'ပြန်ကြိုးစားပါ',
-    pinkCard: 'ပန်းရောင်ကဒ်လိုအပ်သည်',
+    pinkCard: 'အထောက်အထားလိုအပ်သည်',
     thaiLanguage: 'ထိုင်းစကားတတ်ရန်လိုသည်',
     paymentAvailable: 'လစာပေးခြေပုံ',
+  acceptPlaceholder: 'Accept ကို ရိုက်ထည့်ပါ (အသုံးပြုသူများအား ပြပါ)',
+  treatYes: 'ထမင်းကျွေး',
+  treatNo: 'ကိုယ့်ဘာသာစား',
+  acceptedLabel: 'လက်ခံသည့်ဦးရေ',
+  jobDateLabel: 'အလုပ်ရက်',
+  paymentLabel: 'ငွေပေးချေမှု',
     
 
     //Docs Page
