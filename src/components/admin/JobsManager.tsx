@@ -308,12 +308,11 @@ export default function JobsManager() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Pay Amount (Baht)</label>
                     <div className="flex">
                       <input
-                        type="number"
-                        value={formData.pay_amount as any}
+                        type="text"
+                        value={formData.pay_amount ?? ''}
                         onChange={(e) => updateFormData({ pay_amount: e.target.value })}
                         className="w-full p-3 border border-gray-300 rounded-l-lg rounded-r-none"
-                        placeholder="0"
-                        min={0}
+                        placeholder="500-1000"
                       />
                       <span className="inline-flex items-center px-3 border border-l-0 border-gray-300 rounded-r-lg bg-gray-50">฿</span>
                     </div>
