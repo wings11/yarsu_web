@@ -298,7 +298,6 @@ export default function ChatInterface() {
                 onClearFile={clearAttachment}
                 shouldClear={clearFilePreview}
                 disabled={false}
-                maxFileSize={50} // 50MB to accommodate videos
               />
               
               {/* Input with send button inside */}
@@ -465,7 +464,6 @@ export default function ChatInterface() {
                     onClearFile={clearAttachment}
                     shouldClear={clearFilePreview}
                     disabled={false}
-                    maxFileSize={50} // 50MB to accommodate videos
                   />
                   
                   {/* Input with send button inside */}

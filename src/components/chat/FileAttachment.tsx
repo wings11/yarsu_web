@@ -16,7 +16,7 @@ interface FileAttachmentProps {
   onFileSelect: (fileUrl: string, fileName: string, fileType: string, file?: File) => void
   onClearFile?: () => void
   disabled?: boolean
-  maxFileSize?: number // in MB
+  maxFileSize?: number // in MB (deprecated - no longer enforced)
   acceptedTypes?: string[]
   shouldClear?: boolean // Add this to trigger clearing from parent
 }
@@ -28,6 +28,7 @@ interface AttachedFile {
   type: string
   size: number
   uploading: boolean
+  uploadProgress?: number
   error?: string
 }
 
@@ -35,7 +36,7 @@ export default function FileAttachment({
   onFileSelect, 
   onClearFile,
   disabled = false,
-  maxFileSize = 10,
+  maxFileSize = 10, // Kept for backward compatibility but not enforced
   acceptedTypes = ['image/*', 'video/*', '.pdf', '.doc', '.docx', '.txt', '.zip'],
   shouldClear = false
 }: FileAttachmentProps) {
@@ -59,18 +60,13 @@ export default function FileAttachment({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file size based on file type
-    let maxSizeForFile = maxFileSize
-    if (file.type.startsWith('video/')) {
-      maxSizeForFile = 50 // 50MB for videos
-    } else if (file.type.startsWith('image/')) {
-      maxSizeForFile = 5 // 5MB for images
-    }
+    // No file size restrictions - using Supabase Pro with ample storage
+    // Large files may take longer to upload and process
     
     const fileSizeMB = file.size / (1024 * 1024)
-    if (fileSizeMB > maxSizeForFile) {
-      alert(`File size must be less than ${maxSizeForFile}MB`)
-      return
+    if (fileSizeMB > 1000) { // Only warn for extremely large files (1GB+)
+      const proceed = confirm(`This file is very large (${fileSizeMB.toFixed(1)}MB). Upload may take a while. Continue?`)
+      if (!proceed) return
     }
 
     // Create preview URL for immediate display
@@ -82,14 +78,55 @@ export default function FileAttachment({
       name: file.name,
       type: file.type,
       size: file.size,
-      uploading: false // Not uploading yet, will upload when message is sent
+      uploading: true,
+      uploadProgress: 0
     }
 
     setAttachedFile(fileAttachment)
 
-    // Create a blob URL for preview but don't upload yet
-    // The upload will be handled by the ChatInterface when sending the message
-    onFileSelect(previewUrl, file.name, file.type, file)
+    // Start upload immediately with progress tracking
+    try {
+      const { StorageService } = await import('../../lib/storage')
+      const fileType = file.type.startsWith('image/') ? 'image' : 
+                      file.type.startsWith('video/') ? 'video' : 'any'
+      
+      const uploadedUrl = await StorageService.uploadFile(
+        file,
+        'images',
+        'chat',
+        fileType,
+        (progress) => {
+          setAttachedFile(prev => prev ? {
+            ...prev,
+            uploadProgress: progress
+          } : null)
+        }
+      )
+
+      // Update with final uploaded URL
+      const finalAttachment: AttachedFile = {
+        file,
+        url: uploadedUrl,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        uploading: false,
+        uploadProgress: 100
+      }
+
+      setAttachedFile(finalAttachment)
+      
+      // Notify parent with uploaded URL
+      onFileSelect(uploadedUrl, file.name, file.type, file)
+      
+    } catch (error) {
+      console.error('Upload failed:', error)
+      setAttachedFile(prev => prev ? {
+        ...prev,
+        uploading: false,
+        error: 'Upload failed. Please try again.'
+      } : null)
+    }
 
     // Clear file input
     if (fileInputRef.current) {
@@ -199,7 +236,22 @@ export default function FileAttachment({
                 {StorageService.formatFileSize(attachedFile.size)}
               </p>
               {attachedFile.uploading && (
-                <p className="text-xs text-blue-600">Uploading...</p>
+                <div className="mt-1">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-xs text-blue-600">Uploading...</p>
+                    {attachedFile.uploadProgress !== undefined && (
+                      <span className="text-xs text-blue-600">{attachedFile.uploadProgress}%</span>
+                    )}
+                  </div>
+                  {attachedFile.uploadProgress !== undefined && (
+                    <div className="w-full bg-gray-200 rounded-full h-1">
+                      <div 
+                        className="bg-blue-600 h-1 rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${attachedFile.uploadProgress}%` }}
+                      ></div>
+                    </div>
+                  )}
+                </div>
               )}
               {attachedFile.error && (
                 <p className="text-xs text-red-600">{attachedFile.error}</p>

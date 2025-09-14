@@ -37,6 +37,8 @@ export default function JobsManager() {
   const { t } = useLanguage()
   const [isEditing, setIsEditing] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   
   const defaultFormData: {
     job_num: string;
@@ -423,66 +425,157 @@ export default function JobsManager() {
 
                 {/* Media input section */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Media (images/videos/links)</label>
-                  <div className="space-y-2">
-                    {/* URL input for media */}
-                    {formData.media.map((url: string, index: number) => (
-                      <div key={index} className="flex items-center space-x-2 mb-2">
-                        <input
-                          type="text"
-                          value={url}
-                          onChange={e => {
-                            const newMedia = [...formData.media]
-                            newMedia[index] = e.target.value
-                            updateFormData({ media: newMedia })
-                          }}
-                          className="flex-1 p-2 border border-gray-300 rounded"
-                          placeholder="Paste image/video/link URL"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newMedia = formData.media.filter((_, i) => i !== index)
-                            updateFormData({ media: newMedia })
-                          }}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => updateFormData({ media: [...formData.media, ''] })}
-                      className="text-blue-600 hover:text-blue-800 text-sm"
-                    >
-                      + Add Media
-                    </button>
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Media (Images, Videos & External Links)</label>
+                  
                   {/* File upload for images/videos */}
-                  <div className="mt-2">
-                    <label className="block text-sm text-gray-600 mb-2">Or upload image/video file:</label>
+                  <div className="mb-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">📁 Upload Files (Images & Videos)</label>
                     <input
                       type="file"
                       accept="image/*,video/*"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        
+                        setIsUploading(true);
+                        setUploadProgress(0);
+                        
                         let fileType: 'image' | 'video' = 'image';
                         if (file.type.startsWith('video/')) fileType = 'video';
+                        
+                        // Show initial toast
+                        const loadingToast = toast.loading(`Uploading ${fileType}... 0%`);
+                        
                         try {
                           // @ts-ignore
                           const { StorageService } = await import('../../lib/storage');
-                          const uploadedUrl = await StorageService.uploadFile(file, 'images', undefined, fileType);
+                          
+                          const uploadedUrl = await StorageService.uploadFile(
+                            file, 
+                            'images', 
+                            fileType === 'video' ? 'videos' : undefined, // Put videos in a 'videos' folder
+                            fileType,
+                            (percentage) => {
+                              setUploadProgress(percentage);
+                              toast.loading(`Uploading ${fileType}... ${percentage}%`, { id: loadingToast });
+                            }
+                          );
+                          
                           updateFormData({ media: [...formData.media, uploadedUrl] });
+                          toast.success(`${fileType === 'video' ? 'Video' : 'Image'} uploaded successfully!`, { id: loadingToast });
                         } catch (error) {
-                          alert('Failed to upload file. Please try again.');
+                          console.error('Upload error:', error);
+                          toast.error(`Failed to upload ${fileType}. Please try again.`, { id: loadingToast });
+                        } finally {
+                          setIsUploading(false);
+                          setUploadProgress(null);
+                          e.target.value = '';
                         }
-                        e.target.value = '';
                       }}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      disabled={isUploading}
                     />
-                    <p className="text-xs text-gray-500 mt-1">Note: File upload supports images and videos. For YouTube/Vimeo, use the URL field above.</p>
+                    
+                    {/* Upload Progress Bar */}
+                    {isUploading && uploadProgress !== null && (
+                      <div className="mt-2">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-xs font-medium text-blue-700">Uploading...</span>
+                          <span className="text-xs font-medium text-blue-700">{uploadProgress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${uploadProgress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mt-2 text-xs text-gray-600">
+                      <p className="flex items-center">
+                        ✅ <span className="ml-1"><strong>Images:</strong> PNG, JPG, GIF, WebP (no size limit)</span>
+                      </p>
+                      <p className="flex items-center">
+                        ✅ <span className="ml-1"><strong>Videos:</strong> MP4, WebM, MOV, AVI (no size limit)</span>
+                      </p>
+                      <p className="text-amber-600 mt-1 flex items-start">
+                        ⚡ <span className="ml-1"><strong>Note:</strong> Large files may take longer to upload. For better user experience, consider compressing very large videos.</span>
+                      </p>
+                      <p className="text-gray-500 mt-1">Files will be securely stored in Supabase and accessible via direct URLs</p>
+                    </div>
+                  </div>
+
+                  {/* URL input for external media */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      🔗 Media Files & Links {formData.media.length > 0 && `(${formData.media.length} items)`}
+                    </label>
+                    
+                    {/* Show uploaded files */}
+                    {formData.media.length > 0 && (
+                      <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm font-medium text-gray-700 mb-2">📎 Uploaded Media:</p>
+                        <div className="space-y-2">
+                          {formData.media.map((url: string, index: number) => (
+                            <div key={index} className="flex items-center space-x-2 mb-2 bg-white p-2 rounded border">
+                              {/* Media preview */}
+                              <div className="flex-shrink-0">
+                                {url && url.match(/(youtube\.com|youtu\.be|vimeo\.com|\.mp4|\.webm|\.ogg|\.mov|\.avi)/i) ? (
+                                  <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
+                                    <span className="text-blue-600 text-xs font-bold">📹</span>
+                                  </div>
+                                ) : url && url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (
+                                  <img src={url} alt="Preview" className="w-10 h-10 object-cover rounded" />
+                                ) : (
+                                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
+                                    <span className="text-gray-600 text-xs font-bold">🔗</span>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* URL input */}
+                              <input
+                                type="text"
+                                value={url}
+                                onChange={e => {
+                                  const newMedia = [...formData.media]
+                                  newMedia[index] = e.target.value
+                                  updateFormData({ media: newMedia })
+                                }}
+                                className="flex-1 p-2 border border-gray-300 rounded text-sm"
+                                placeholder="Media URL"
+                              />
+                              
+                              {/* Remove button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newMedia = formData.media.filter((_, i) => i !== index)
+                                  updateFormData({ media: newMedia })
+                                }}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                title="Remove media"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Add new external link button */}
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => updateFormData({ media: [...formData.media, ''] })}
+                        className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add External Link (YouTube, Vimeo, etc.)
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end space-x-3 pt-4">
