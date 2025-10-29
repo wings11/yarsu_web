@@ -11,6 +11,7 @@ interface UserData {
   id: string
   email: string
   role: 'member' | 'admin' | 'superadmin'
+  name?: string | null
   created_at?: string
 }
 
@@ -24,7 +25,7 @@ export default function UserManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, email, role')
+        .select('id, email, role, name')
         .order('email', { ascending: true })
       
       if (error) throw error
@@ -55,7 +56,8 @@ export default function UserManagement() {
   }
 
   const filteredUsers = users?.filter(user => 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || []
 
   if (isLoading) {
@@ -88,7 +90,7 @@ export default function UserManagement() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
           type="text"
-          placeholder="Search users by email..."
+          placeholder="Search users by name or email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -108,10 +110,11 @@ export default function UserManagement() {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900 break-all">
-                      {user.email}
+                      {user.name || user.email}
                     </div>
                     <div className="text-xs text-gray-500">
-                      ID: {user.id.slice(-8)}
+                      {user.name && <div>{user.email}</div>}
+                      <div>ID: {user.id.slice(-8)}</div>
                     </div>
                   </div>
                 </div>
@@ -178,10 +181,11 @@ export default function UserManagement() {
                       </div>
                       <div className="ml-4 min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 break-all">
-                          {user.email}
+                          {user.name || user.email}
                         </div>
                         <div className="text-sm text-gray-500">
-                          ID: {user.id.slice(-8)}
+                          {user.name && <div className="break-all">{user.email}</div>}
+                          <div>ID: {user.id.slice(-8)}</div>
                         </div>
                       </div>
                     </div>

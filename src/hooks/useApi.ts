@@ -39,7 +39,7 @@ export function useChatsWithUsers() {
         // Get real user data from Supabase users table (RLS disabled)
         const { data: users, error } = await supabase
           .from('users')
-          .select('id, email, role')
+          .select('id, email, role, name')
           .in('id', userIds)
         
         if (error) {
@@ -52,7 +52,8 @@ export function useChatsWithUsers() {
           userMap.set(user.id, {
             id: user.id,
             email: user.email,
-            role: user.role
+            role: user.role,
+            name: user.name
           })
         })
         

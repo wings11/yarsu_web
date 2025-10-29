@@ -16,6 +16,7 @@ export interface User {
   id: string
   email: string
   role: 'member' | 'admin' | 'superadmin'
+  name?: string | null
 }
 
 export interface Chat {
@@ -27,7 +28,7 @@ export interface Chat {
   user?: {
     id: string
     email: string
-    // display_name?: string
+    name?: string | null
     role?: string
   }
 }

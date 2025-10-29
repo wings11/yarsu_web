@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { LoadingSpinner } from '@/components/ui/Loading'
-import { formatDate, formatChatTime } from '@/lib/utils'
+import { formatDate, formatChatTime, getUserDisplayName, getUserInitials } from '@/lib/utils'
 import { Send, Phone, Video, ArrowLeft, RefreshCw, Bell, BellOff } from 'lucide-react'
 import type { Chat, Message } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -26,7 +26,7 @@ export default function ChatInterface() {
   const [clearFilePreview, setClearFilePreview] = useState(false)
   const [showChatList, setShowChatList] = useState(true) // For mobile navigation
   const { user } = useAuth()
-  const { socket, joinChat, leaveChat, sendMessage, newMessages, activeChats } = useChat()
+  const { socket, joinChat, leaveChat, sendMessage, newMessages, activeChats, sendTypingIndicator, typingUsers } = useChat()
   const { data: chats, isLoading: chatsLoading, refetch: refetchChats } = useChatsWithUsers() // Use enhanced hook for admin
   const { data: messages, isLoading: messagesLoading, refetch: refetchMessages } = useMessages(selectedChat?.id || 0)
   const sendMessageMutation = useSendMessage()
@@ -34,6 +34,7 @@ export default function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const previousMessagesRef = useRef<any[]>([])
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Notification system
   const { checkForNewMessages, notificationPermission } = useNotifications()
@@ -55,13 +56,13 @@ export default function ChatInterface() {
   // Check for new messages and send notifications (admin only)
   useEffect(() => {
     if (isAdmin && messages && selectedChat) {
-      const userEmail = selectedChat.user?.email || `User ${selectedChat.user_id.slice(-4)}`
+      const userName = getUserDisplayName(selectedChat.user)
       
       checkForNewMessages(
         messages,
         previousMessagesRef.current,
         selectedChat.id,
-        userEmail
+        userName
       )
       
       // Update the previous messages reference
@@ -88,6 +89,24 @@ export default function ChatInterface() {
       }
     }
   }, [chats, isAdmin, user?.id])
+
+  // Handle typing indicator
+  const handleTyping = () => {
+    if (!selectedChat) return
+    
+    // Send typing start event
+    sendTypingIndicator(selectedChat.id, true)
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+    
+    // Set timeout to send typing stop event after 3 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTypingIndicator(selectedChat.id, false)
+    }, 3000)
+  }
 
   // Handle mobile chat selection
   const handleChatSelect = (chat: Chat) => {
@@ -233,7 +252,7 @@ export default function ChatInterface() {
               <div className="flex items-center space-x-3">
                 <div>
                   <h3 className="font-semibold text-gray-900">
-                    {selectedChat.user?.email || `unknown-user-${selectedChat.user_id.slice(-8)}@yarsu.app`}
+                    {getUserDisplayName(selectedChat.user)}
                   </h3>
                   <p className="text-sm text-gray-600">
                     {selectedChat.user?.role ? `${selectedChat.user.role} • Online` : 'Online'}
@@ -283,6 +302,19 @@ export default function ChatInterface() {
                   isOwn={message.sender_id === user?.id}
                 />
               ))}
+              
+              {/* Typing indicator */}
+              {selectedChat && typingUsers.get(selectedChat.id) && typingUsers.get(selectedChat.id)!.size > 0 && (
+                <div className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-500">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                  <span>typing...</span>
+                </div>
+              )}
+              
               <div ref={messagesEndRef} />
             </>
           )}
@@ -304,7 +336,10 @@ export default function ChatInterface() {
               <div className="flex-1 relative">
                 <Input
                   value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
+                  onChange={(e) => {
+                    setMessageText(e.target.value)
+                    handleTyping()
+                  }}
                   placeholder="Type your message..."
                   className="w-full text-base px-3 py-3 sm:px-4 sm:py-3 pr-14 rounded-full border-gray-300 focus:border-primary-500 focus:ring-primary-500"
                 />
@@ -399,7 +434,7 @@ export default function ChatInterface() {
                   </button>
                   <div>
                     <h3 className="font-semibold text-gray-900">
-                      {selectedChat.user?.email || `unknown-user-${selectedChat.user_id.slice(-8)}@yarsu.app`}
+                      {getUserDisplayName(selectedChat.user)}
                     </h3>
                     <p className="text-sm text-gray-600">
                       {selectedChat.user?.role ? `${selectedChat.user.role} • Online` : 'Online'}
@@ -449,6 +484,19 @@ export default function ChatInterface() {
                       isOwn={message.sender_id === user?.id}
                     />
                   ))}
+                  
+                  {/* Typing indicator */}
+                  {selectedChat && typingUsers.get(selectedChat.id) && typingUsers.get(selectedChat.id)!.size > 0 && (
+                    <div className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-500">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <span>typing...</span>
+                    </div>
+                  )}
+                  
                   <div ref={messagesEndRef} />
                 </>
               )}
@@ -470,7 +518,10 @@ export default function ChatInterface() {
                   <div className="flex-1 relative">
                     <Input
                       value={messageText}
-                      onChange={(e) => setMessageText(e.target.value)}
+                      onChange={(e) => {
+                        setMessageText(e.target.value)
+                        handleTyping()
+                      }}
                       placeholder="Type a message..."
                       className="w-full text-base px-3 py-3 sm:px-4 sm:py-3 pr-14 rounded-full border-gray-300 focus:border-primary-500 focus:ring-primary-500"
                     />
@@ -508,10 +559,8 @@ function ChatListItem({
   isSelected: boolean
   onClick: () => void 
 }) {
-  const userEmail = chat.user?.email || `unknown-user-${chat.user_id.slice(-8)}@yarsu.app`
-  const avatarInitials = chat.user?.email 
-    ? chat.user.email.slice(0, 2).toUpperCase()
-    : chat.user_id.slice(0, 2).toUpperCase()
+  const displayName = getUserDisplayName(chat.user)
+  const avatarInitials = getUserInitials(chat.user)
 
   const lastActivity = chat.last_message_at || chat.created_at
 
@@ -528,7 +577,7 @@ function ChatListItem({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
-            {userEmail}
+            {displayName}
           </p>
           <p className="text-xs text-gray-500">
             {formatDate(lastActivity)}

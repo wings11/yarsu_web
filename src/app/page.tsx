@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { PageLoader } from '@/components/ui/Loading'
 import Layout from '@/components/Layout'
 import { LoginForm, SignupForm } from '@/components/auth/AuthForms'
+import NameModal from '@/components/auth/NameModal'
 import HighlightsSlideshow from '@/components/home/HighlightsSlideshow'
 import SocialLinks from '@/components/home/SocialLinks'
 import ParallaxContainer from '@/components/ui/animations/ParallaxContainer'
@@ -18,8 +19,23 @@ import {
 } from '@/components/ui/animations/MicroAnimations'
 
 export default function RootPage() {
-  const { user, loading } = useAuth()
+  const { user, loading, updateUserName } = useAuth()
   const [isLoginMode, setIsLoginMode] = useState(true)
+  const [showNameModal, setShowNameModal] = useState(false)
+
+  // Check if user needs to set name
+  useEffect(() => {
+    if (user && !user.name) {
+      setShowNameModal(true)
+    } else {
+      setShowNameModal(false)
+    }
+  }, [user])
+
+  const handleNameSet = (name: string) => {
+    updateUserName(name)
+    setShowNameModal(false)
+  }
 
   if (loading) {
     return <PageLoader />
@@ -47,9 +63,17 @@ export default function RootPage() {
   }
 
   return (
-    <Layout>
-      <HomePage />
-    </Layout>
+    <>
+      <NameModal 
+        isOpen={showNameModal} 
+        onClose={() => {}} // Empty function prevents closing by clicking outside
+        onNameSet={handleNameSet}
+      />
+      
+      <Layout>
+        <HomePage />
+      </Layout>
+    </>
   )
 }
 

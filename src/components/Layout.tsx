@@ -118,7 +118,7 @@ export default function Layout({ children }: LayoutProps) {
             
             <div className="flex items-center space-x-4">
               <LanguageSwitcher size="sm" />
-              <span className="text-sm text-gray-600">{t('welcome')}, {user?.email}</span>
+              <span className="text-sm text-gray-600">{t('welcome')}, {user?.name || user?.email}</span>
               <Button variant="ghost" onClick={handleSignOut} size="sm" className="p-2" title="Sign Out">
                 <LogOut className="h-4 w-4" />
               </Button>

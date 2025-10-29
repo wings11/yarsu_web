@@ -68,6 +68,48 @@ export function getInitials(name: string) {
     .slice(0, 2)
 }
 
+export function getUserDisplayName(user: { name?: string | null, email?: string, id?: string } | undefined | null): string {
+  if (!user) return 'Unknown User'
+  
+  // Prefer name if available
+  if (user.name && user.name.trim()) {
+    return user.name.trim()
+  }
+  
+  // Fallback to email
+  if (user.email) {
+    return user.email
+  }
+  
+  // Final fallback to ID
+  if (user.id) {
+    return `User ${user.id.slice(-8)}`
+  }
+  
+  return 'Unknown User'
+}
+
+export function getUserInitials(user: { name?: string | null, email?: string, id?: string } | undefined | null): string {
+  if (!user) return 'U'
+  
+  // Prefer name if available
+  if (user.name && user.name.trim()) {
+    return getInitials(user.name)
+  }
+  
+  // Fallback to email
+  if (user.email) {
+    return user.email.slice(0, 2).toUpperCase()
+  }
+  
+  // Final fallback to ID
+  if (user.id) {
+    return user.id.slice(0, 2).toUpperCase()
+  }
+  
+  return 'U'
+}
+
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number

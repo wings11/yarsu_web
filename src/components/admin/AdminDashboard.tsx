@@ -154,11 +154,16 @@ export default function AdminDashboard() {
               {t('needAdminPrivileges')}
             </p>
             <div className="bg-white rounded-md p-3 md:p-4 border border-red-200 text-left">
-              <p className="text-xs md:text-sm text-gray-600 mb-2">
-                <strong>{t('currentRole')}:</strong> {user?.role || 'Not assigned'}
-              </p>
+              {user?.name && (
+                <p className="text-xs md:text-sm text-gray-600 mb-2">
+                  <strong>{t('name')}:</strong> {user.name}
+                </p>
+              )}
               <p className="text-xs md:text-sm text-gray-600 mb-2 break-all">
                 <strong>{t('email')}:</strong> {user?.email}
+              </p>
+              <p className="text-xs md:text-sm text-gray-600 mb-2">
+                <strong>{t('currentRole')}:</strong> {user?.role || 'Not assigned'}
               </p>
               <p className="text-xs md:text-sm text-gray-500">
                 {t('contactAdmin')}
@@ -320,7 +325,7 @@ export default function AdminDashboard() {
                   {isSuperAdmin ? t('superAdminDashboard') : t('adminDashboard')}
                 </h1>
                 <p className="text-sm md:text-base text-gray-600">
-                  {t('welcomeBack')}, {user?.email}. {t('managePlatform')}
+                  {t('welcomeBack')}, {user?.name || user?.email}. {t('managePlatform')}
                 </p>
               </div>
               {/* Sidebar Button for Mobile */}

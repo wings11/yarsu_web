@@ -527,6 +527,18 @@ class ApiService {
       }
     }
   }
+
+  // User profile endpoints
+  async getUserProfile() {
+    return this.request('/api/auth/profile')
+  }
+
+  async updateUserName(name: string) {
+    return this.request('/api/auth/profile/name', {
+      method: 'PUT',
+      body: JSON.stringify({ name })
+    })
+  }
 }
 
 export const apiService = new ApiService()
