@@ -112,7 +112,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       newSocket.on('new_message', ({ chatId, message }: { chatId: number, message: Message }) => {
         console.log('📨 RECEIVED new_message event via Socket.io')
         console.log('  chatId:', chatId)
-        console.log('  message:', message)
+        console.log('  message.id:', message.id)
         console.log('  current user:', user.id)
         console.log('  sender:', message.sender_id)
         
@@ -132,16 +132,44 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             return [message]
           }
           
-          // Check if message already exists (prevent duplicates)
-          const exists = oldMessages.some(m => m.id === message.id)
+          // Remove optimistic message if this is the real version
+          let filteredMessages = oldMessages.filter((m: any) => {
+            // Remove optimistic messages (temporary messages while waiting for server response)
+            if (m._optimistic) {
+              // Check if this real message matches the optimistic one
+              if (m.message === message.message && 
+                  m.sender_id === message.sender_id &&
+                  Math.abs(new Date(m.created_at).getTime() - new Date(message.created_at).getTime()) < 5000) {
+                console.log('  🔄 Replacing optimistic message with real message')
+                return false // Remove optimistic
+              }
+            }
+            return true
+          })
+          
+          // ROBUST duplicate check: Check by ID and by content+timestamp to prevent duplicates
+          const exists = filteredMessages.some(m => {
+            // Check by ID first (most reliable)
+            if (m.id === message.id) return true
+            
+            // Also check by content and timestamp (within 2 seconds) as fallback
+            if (m.message === message.message && 
+                m.sender_id === message.sender_id &&
+                Math.abs(new Date(m.created_at).getTime() - new Date(message.created_at).getTime()) < 2000) {
+              return true
+            }
+            
+            return false
+          })
+          
           if (exists) {
-            console.log('  ⚠️ Message already exists, skipping duplicate')
-            return oldMessages
+            console.log('  ⚠️ Message already exists (duplicate detected), skipping')
+            return filteredMessages
           }
           
-          console.log('  ✅ Adding message to cache, total:', oldMessages.length + 1)
+          console.log('  ✅ Adding NEW message to cache, total:', filteredMessages.length + 1)
           // Add new message to the end
-          return [...oldMessages, message]
+          return [...filteredMessages, message]
         })
         
         // Also update the chats list to show latest message and reorder

@@ -13,6 +13,7 @@ import { formatDate, formatChatTime, getUserDisplayName, getUserInitials } from 
 import { Send, Phone, Video, ArrowLeft, RefreshCw, Bell, BellOff } from 'lucide-react'
 import type { Chat, Message } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import FileAttachment from './FileAttachment'
 import FileMessage from './FileMessage'
 
@@ -31,6 +32,7 @@ export default function ChatInterface() {
   const { data: messages, isLoading: messagesLoading, refetch: refetchMessages } = useMessages(selectedChat?.id || 0)
   const sendMessageMutation = useSendMessage()
   const replyMessageMutation = useReplyMessage()
+  const queryClient = useQueryClient()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const previousMessagesRef = useRef<any[]>([])
@@ -154,7 +156,32 @@ export default function ChatInterface() {
     }
     
     // Send via API for persistence (required for files, optional for text)
+    const messagesQueryKey = ['messages', selectedChat.id]
+    let previousMessages: any = null
+    
     try {
+      // Create optimistic message for immediate UI feedback (sender only)
+      const optimisticMessage = {
+        id: Date.now(), // Temporary ID
+        chat_id: selectedChat.id,
+        sender_id: user?.id,
+        message: finalMessageContent,
+        type: messageType,
+        file_url: null,
+        created_at: new Date().toISOString(),
+        read_at: null,
+        _optimistic: true // Flag to identify optimistic updates
+      }
+
+      // Save previous messages for rollback on error
+      previousMessages = queryClient.getQueryData(messagesQueryKey)
+      
+      // Add optimistic message to cache immediately (for sender)
+      queryClient.setQueryData(messagesQueryKey, (old: any) => {
+        if (!old) return [optimisticMessage]
+        return [...old, optimisticMessage]
+      })
+
       if (isAdmin) {
         // Admin uses reply endpoint
         await replyMessageMutation.mutateAsync({
@@ -173,11 +200,15 @@ export default function ChatInterface() {
         })
       }
       
-      // Force immediate refresh of messages and chats
-      refetchMessages()
+      // Socket.io will replace optimistic message with real one
+      // Only refetch chats list to update last message preview
       refetchChats()
     } catch (error) {
       console.error('Failed to send message:', error)
+      // On error, revert optimistic update
+      if (previousMessages) {
+        queryClient.setQueryData(messagesQueryKey, previousMessages)
+      }
     }
 
     // Clear input and file attachment
