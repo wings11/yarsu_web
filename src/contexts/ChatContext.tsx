@@ -132,30 +132,25 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             return [message]
           }
           
-          // Remove optimistic message if this is the real version
-          let filteredMessages = oldMessages.filter((m: any) => {
-            // Remove optimistic messages (temporary messages while waiting for server response)
-            if (m._optimistic) {
-              // Check if this real message matches the optimistic one
-              if (m.message === message.message && 
-                  m.sender_id === message.sender_id &&
-                  Math.abs(new Date(m.created_at).getTime() - new Date(message.created_at).getTime()) < 5000) {
-                console.log('  🔄 Replacing optimistic message with real message')
-                return false // Remove optimistic
-              }
-            }
-            return true
-          })
-          
-          // ROBUST duplicate check: Check by ID and by content+timestamp to prevent duplicates
-          const exists = filteredMessages.some(m => {
+          // Check if message already exists (prevent duplicates)
+          const exists = oldMessages.some(m => {
             // Check by ID first (most reliable)
-            if (m.id === message.id) return true
+            if (m.id === message.id) {
+              console.log('  ⚠️ Duplicate detected by ID:', message.id)
+              return true
+            }
             
-            // Also check by content and timestamp (within 2 seconds) as fallback
-            if (m.message === message.message && 
-                m.sender_id === message.sender_id &&
-                Math.abs(new Date(m.created_at).getTime() - new Date(message.created_at).getTime()) < 2000) {
+            // Also check by content and timestamp (within 3 seconds) as fallback
+            // This prevents duplicates when Socket event arrives before/after refetch
+            const isSameContent = m.message === message.message
+            const isSameSender = m.sender_id === message.sender_id
+            const timeDiff = Math.abs(new Date(m.created_at).getTime() - new Date(message.created_at).getTime())
+            
+            if (isSameContent && isSameSender && timeDiff < 3000) {
+              console.log('  ⚠️ Duplicate detected by content+time:', {
+                content: message.message,
+                timeDiff: timeDiff + 'ms'
+              })
               return true
             }
             
@@ -163,13 +158,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           })
           
           if (exists) {
-            console.log('  ⚠️ Message already exists (duplicate detected), skipping')
-            return filteredMessages
+            console.log('  ❌ Skipping duplicate message')
+            return oldMessages
           }
           
-          console.log('  ✅ Adding NEW message to cache, total:', filteredMessages.length + 1)
+          console.log('  ✅ Adding NEW message to cache, total:', oldMessages.length + 1)
           // Add new message to the end
-          return [...filteredMessages, message]
+          return [...oldMessages, message]
         })
         
         // Also update the chats list to show latest message and reorder
