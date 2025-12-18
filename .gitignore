@@ -56,3 +56,6 @@ logs
 **/public/sw.js.map
 **/public/workbox-*.js.map
 **/public/worker-*.js.map
+android/
+capacitor.config.ts
+yarsu_backend/
