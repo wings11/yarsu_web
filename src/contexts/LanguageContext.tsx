@@ -226,6 +226,14 @@ const translations = {
     totalUsers: 'Total Users',
     activeChats: 'Active Chats',
     postsCreated: 'Posts Created',
+    
+    // Contact Popup (replaces real-time chat)
+    contactAdminPopup: 'Contact Admin',
+    contactAdminDescription: 'Choose your preferred platform to get in touch with us',
+    contactViaTelegram: 'Chat with us on Telegram',
+    contactViaLine: 'Chat with us on LINE',
+    contactViaMessenger: 'Chat with us on Messenger',
+    contactAvailability: 'We typically respond within 24 hours',
   },
   my: {
     // Navigation  
@@ -399,5 +407,13 @@ const translations = {
     totalUsers: 'စုစုပေါင်း အသုံးပြုသူများ',
     activeChats: 'လက်ရှိ ချတ်များ',
     postsCreated: 'ဖန်တီးထားသော ပို့စ်များ',
+    
+    // Contact Popup (replaces real-time chat)
+    contactAdminPopup: 'Admin ကို ဆက်သွယ်ရန်',
+    contactAdminDescription: 'သင်နှစ်သက်ရာ ပလက်ဖောင်းကို ရွေးချယ်ပါ',
+    contactViaTelegram: 'Telegram မှတဆင့် ဆက်သွယ်ပါ',
+    contactViaLine: 'LINE မှတဆင့် ဆက်သွယ်ပါ',
+    contactViaMessenger: 'Messenger မှတဆင့် ဆက်သွယ်ပါ',
+    contactAvailability: '၂၄ နာရီအတွင်း ပြန်လည်ဖြေကြားပေးပါမည်',
   }
 }

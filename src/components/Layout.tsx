@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { useChat } from '@/contexts/ChatContext'
+// COMMENTED OUT: Real-time chat context no longer needed
+// import { useChat } from '@/contexts/ChatContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { Button } from '@/components/ui/Button'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
@@ -33,7 +34,8 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, signOut } = useAuth()
-  const { newMessages } = useChat()
+  // COMMENTED OUT: Real-time chat - replaced with contact popup
+  // const { newMessages } = useChat()
   const { t } = useLanguage()
   const router = useRouter()
   const pathname = usePathname()
@@ -43,7 +45,9 @@ export default function Layout({ children }: LayoutProps) {
     router.push('/login')
   }
 
-  const unreadCount = newMessages.length
+  // COMMENTED OUT: No longer tracking unread messages from real-time chat
+  // const unreadCount = newMessages.length
+  const unreadCount = 0 // Static value since real-time chat is disabled
   
   // Show admin navigation for admin and superadmin users
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'

@@ -4,7 +4,8 @@ import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools' // Hidden for production
 import { AuthProvider } from '@/contexts/AuthContext'
-import { ChatProvider } from '@/contexts/ChatContext'
+// COMMENTED OUT: Real-time chat replaced with contact popup
+// import { ChatProvider } from '@/contexts/ChatContext'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -82,10 +83,11 @@ export default function RootLayout({
             <LanguageProvider>
               <ToastProvider>
                 <AuthProvider>
-                  <ChatProvider>
+                  {/* COMMENTED OUT: ChatProvider - Real-time chat replaced with contact popup */}
+                  {/* <ChatProvider> */}
                     {children}
                     <PWAInstallPrompt />
-                  </ChatProvider>
+                  {/* </ChatProvider> */}
                 </AuthProvider>
               </ToastProvider>
             </LanguageProvider>
