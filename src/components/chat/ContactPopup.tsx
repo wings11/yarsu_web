@@ -30,6 +30,7 @@ interface ContactPopupProps {
   telegramLink?: string
   lineLink?: string
   messengerLink?: string
+  viberLink?: string
 }
 
 export default function ContactPopup({ 
@@ -37,7 +38,8 @@ export default function ContactPopup({
   onClose,
   telegramLink = 'https://t.me/your_telegram',  // Default - update with actual link
   lineLink = 'https://line.me/ti/p/your_line_id',  // Default - update with actual link
-  messengerLink = 'https://m.me/your_facebook_page'  // Default - update with actual link
+  messengerLink = 'https://m.me/your_facebook_page',  // Default - update with actual link
+  viberLink = 'https://invite.viber.com/?g2=AQAnqn%2F8W4X3x1OjZPP%2F39icipPzNwEGK8nrQLKwuatMk8PTNukoTdhylPz%2BMA0j'  // Default - update with actual link
 }: ContactPopupProps) {
   const { t } = useLanguage()
 
@@ -64,6 +66,18 @@ export default function ContactPopup({
       link: messengerLink,
       color: 'bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:from-[#0099e6] hover:to-[#0055cc]',
       description: t('contactViaMessenger') || 'Chat with us on Messenger'
+    },
+    {
+      name: 'Viber',
+      icon: () => (
+        <svg viewBox="0 0 24 24" className="w-8 h-8" fill="currentColor">
+          <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111S18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6
+.963z"/>
+        </svg>
+      ),
+      link: viberLink,
+      color: 'bg-[#665CAC] hover:bg-[#574b9c]',
+      description: t('contactViaViber') || 'Chat with us on Viber'
     }
   ]
 

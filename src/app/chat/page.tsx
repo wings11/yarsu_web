@@ -19,9 +19,10 @@ import { useRouter } from 'next/navigation'
 
 // Contact links configuration - UPDATE THESE WITH YOUR ACTUAL LINKS
 const CONTACT_LINKS = {
-  telegram: 'https://t.me/yarsu1718',      // Replace with your Telegram link
+  telegram: 'https://t.me/NanBkk777',      // Replace with your Telegram link
   line: 'https://line.me/ti/p/CMEQqeayj8',           // Replace with your LINE link  
-  messenger: 'https://m.me/61583933405143',         // YarSu Facebook page
+  messenger: 'https://m.me/61583933405143',       // YarSu Facebook page
+  viber: 'https://invite.viber.com/?g2=AQAnqn%2F8W4X3x1OjZPP%2F39icipPzNwEGK8nrQLKwuatMk8PTNukoTdhylPz%2BMA0j',
 }
 
 export default function ChatPage() {
@@ -58,6 +59,7 @@ export default function ChatPage() {
         telegramLink={CONTACT_LINKS.telegram}
         lineLink={CONTACT_LINKS.line}
         messengerLink={CONTACT_LINKS.messenger}
+        viberLink={CONTACT_LINKS.viber}
       />
 
       {/* Fallback content when popup is closed */}

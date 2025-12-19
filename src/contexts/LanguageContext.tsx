@@ -233,6 +233,7 @@ const translations = {
     contactViaTelegram: 'Chat with us on Telegram',
     contactViaLine: 'Chat with us on LINE',
     contactViaMessenger: 'Chat with us on Messenger',
+    contactViaViber: 'Chat with us on Viber',
     contactAvailability: 'We typically respond within 24 hours',
   },
   my: {
@@ -414,6 +415,7 @@ const translations = {
     contactViaTelegram: 'Telegram မှတဆင့် ဆက်သွယ်ပါ',
     contactViaLine: 'LINE မှတဆင့် ဆက်သွယ်ပါ',
     contactViaMessenger: 'Messenger မှတဆင့် ဆက်သွယ်ပါ',
+    contactViaViber: 'Viber မှတဆင့် ဆက်သွယ်ပါ',
     contactAvailability: '၂၄ နာရီအတွင်း ပြန်လည်ဖြေကြားပေးပါမည်',
   }
 }
